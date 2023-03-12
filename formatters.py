@@ -27,7 +27,7 @@ def format_post(post, mastodon_base_url) -> dict:
     media = "\n".join([format_media(media) for media in post.data.media_attachments])
     # created_at = post.data['created_at'].strftime('%B %d, %Y at %H:%M')
     created_at = post.data['created_at'].isoformat()
-    home_link = f'<a href="{post.get_home_url(mastodon_base_url)}" target="_blank">home</a>'
+    home_link = f'<a href="https://main.elk.zone/{post.get_home_url(mastodon_base_url)}" target="_blank">home</a>'
     original_link = f'<a href="{post.data.url}" target="_blank">original</a>'
     replies_count = post.data['replies_count']
     reblogs_count = post.data['reblogs_count']
