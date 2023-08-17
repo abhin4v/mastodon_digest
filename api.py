@@ -38,7 +38,7 @@ def fetch_posts_and_boosts(
             filtered_response = response
 
         for post in filtered_response:
-            if post["visibility"] != "public":
+            if post["visibility"] != "public" and post["visibility"] != "unlisted":
                 continue
 
             total_posts_seen += 1
