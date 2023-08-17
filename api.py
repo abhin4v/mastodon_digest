@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
+import itertools
 
 from models import ScoredPost
 
@@ -28,9 +29,9 @@ def fetch_posts_and_boosts(
     total_posts_seen = 0
 
     # Iterate over our home timeline until we run out of posts or we hit the limit
-    response = mastodon_client.timeline(min_id=start)
+    response = mastodon_client.timeline(min_id=start, limit=40)
     while response and total_posts_seen < TIMELINE_LIMIT:
-
+        print("Fetching timeline posts")
         # Apply our server-side filters
         if filters:
             filtered_response = mastodon_client.filters_apply(response, filters, "home")
@@ -40,8 +41,6 @@ def fetch_posts_and_boosts(
         for post in filtered_response:
             if post["visibility"] != "public" and post["visibility"] != "unlisted":
                 continue
-
-            total_posts_seen += 1
 
             boost = False
             if post["reblog"] is not None:
@@ -59,6 +58,7 @@ def fetch_posts_and_boosts(
                     and not scored_post.info["bookmarked"]
                     and scored_post.info["account"]["acct"] != mastodon_username
                 ):
+                    total_posts_seen += 1
                     # Append to either the boosts list or the posts lists
                     if boost:
                         boosts.append(scored_post)
@@ -69,5 +69,10 @@ def fetch_posts_and_boosts(
         response = mastodon_client.fetch_previous(
             response
         )  # fext the previous (because of reverse chron) page of results
+
+    total_count = len(posts) + len(boosts)
+    for i, post in enumerate(itertools.chain(posts, boosts)):
+        print(f"[{i+1}/{total_count}] Fetching metrics for {post.url}")
+        post.fetch_metrics()
 
     return posts, boosts
