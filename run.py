@@ -32,6 +32,7 @@ def run(
     hours: int,
     scorer: Scorer,
     threshold: Threshold,
+    boosted_tags: set[str],
     mastodon_token: str,
     mastodon_base_url: str,
     mastodon_username: str,
@@ -39,6 +40,7 @@ def run(
 ) -> None:
 
     print(f"Building digest from the past {hours} hours...")
+    print(f"Boosted tags: {boosted_tags}")
 
     mst = Mastodon(
         access_token=mastodon_token,
@@ -50,10 +52,10 @@ def run(
 
     # 2. Score them, and return those that meet our threshold
     threshold_posts = format_posts(
-        sorted(threshold.posts_meeting_criteria(posts, scorer), key=lambda p: p.score, reverse=True),
+        sorted(threshold.posts_meeting_criteria(posts, boosted_tags, scorer), key=lambda p: p.score, reverse=True),
         mastodon_base_url)
     threshold_boosts = format_posts(
-        sorted(threshold.posts_meeting_criteria(boosts, scorer), key=lambda p: p.score, reverse=True),
+        sorted(threshold.posts_meeting_criteria(boosts, boosted_tags, scorer), key=lambda p: p.score, reverse=True),
         mastodon_base_url)
 
     # 3. Build the digest
@@ -118,6 +120,13 @@ if __name__ == "__main__":
         help="Output directory for the rendered digest",
         required=False,
     )
+    arg_parser.add_argument(
+        '-g',
+        default=[],
+        dest="tags",
+        help="Tags to boost the scores,",
+        action='append')
+
     args = arg_parser.parse_args()
 
     output_dir = Path(args.output_dir)
@@ -139,6 +148,7 @@ if __name__ == "__main__":
         args.hours,
         scorers[args.scorer](),
         get_threshold_from_name(args.threshold),
+        set(t.lower() for t in args.tags),
         mastodon_token,
         mastodon_base_url,
         mastodon_username,
