@@ -45,7 +45,8 @@ def format_post(post, mastodon_base_url) -> dict:
         original_link=original_link,
         replies_count=replies_count,
         reblogs_count=reblogs_count,
-        favourites_count=favourites_count
+        favourites_count=favourites_count,
+        score=f"{post.score:.2f}"
     )
     
 def format_posts(posts, mastodon_base_url):

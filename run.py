@@ -50,10 +50,10 @@ def run(
 
     # 2. Score them, and return those that meet our threshold
     threshold_posts = format_posts(
-        threshold.posts_meeting_criteria(posts, scorer),
+        sorted(threshold.posts_meeting_criteria(posts, scorer), key=lambda p: p.score, reverse=True),
         mastodon_base_url)
     threshold_boosts = format_posts(
-        threshold.posts_meeting_criteria(boosts, scorer),
+        sorted(threshold.posts_meeting_criteria(boosts, scorer), key=lambda p: p.score, reverse=True),
         mastodon_base_url)
 
     # 3. Build the digest

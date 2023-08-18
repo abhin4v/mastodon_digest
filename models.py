@@ -25,6 +25,7 @@ def enrich_post(post):
 class ScoredPost:
     def __init__(self, info: dict):
         self.info = info
+        self.score = 0
 
     @property
     def url(self) -> str:
@@ -40,7 +41,8 @@ class ScoredPost:
         return f"{mastodon_base_url}/@{self.info['account']['acct']}/{self.info['id']}"
 
     def get_score(self, scorer: Scorer) -> float:
-        return scorer.score(self)
+        self.score = scorer.score(self)
+        return self.score
 
     @property
     def data(self):
