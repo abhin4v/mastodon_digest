@@ -1,4 +1,5 @@
 from __future__ import annotations
+from datetime import datetime, timedelta, timezone
 
 from mastodon import Mastodon
 from typing import TYPE_CHECKING
@@ -42,11 +43,14 @@ class ScoredPost:
     def get_home_url(self, mastodon_base_url: str) -> str:
         return f"{mastodon_base_url}/@{self.info['account']['acct']}/{self.info['id']}"
 
-    def calc_score(self, boosted_tags: set[str], scorer: Scorer) -> float:
+    def calc_score(self, boosted_tags: set[str], halflife_hours: int, scorer: Scorer) -> float:
         self.score = scorer.score(self)
         tags = [tag.name.lower() for tag in self.info.tags]
-        if any((t in boosted_tags) for t in tags):
-          self.score = TAG_BOOST * self.score
+        if self.score > 0:
+            if any((t in boosted_tags) for t in tags):
+                self.score = TAG_BOOST * self.score
+            if halflife_hours > 0:
+                self.score = self.score * (0.5 ** ((datetime.now(timezone.utc) - self.info["created_at"])/timedelta(hours = halflife_hours)))
         return self.score
 
     @property

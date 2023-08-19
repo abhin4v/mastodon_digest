@@ -19,11 +19,14 @@ class Threshold(Enum):
         return self.name.lower()
 
     def posts_meeting_criteria(
-        self, posts: list[ScoredPost], boosted_tags: set[str], scorer: Scorer
+        self, posts: list[ScoredPost],
+        boosted_tags: set[str],
+        halflife_hours: int,
+        scorer: Scorer
     ) -> list[ScoredPost]:
         """Returns a list of ScoredPosts that meet this Threshold with the given Scorer"""
 
-        all_post_scores = [p.calc_score(boosted_tags, scorer) for p in posts]
+        all_post_scores = [p.calc_score(boosted_tags, halflife_hours, scorer) for p in posts]
         threshold_posts = [
             p
             for p in posts

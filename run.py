@@ -33,6 +33,7 @@ def run(
     scorer: Scorer,
     threshold: Threshold,
     boosted_tags: set[str],
+    halflife_hours: int,
     mastodon_token: str,
     mastodon_base_url: str,
     mastodon_username: str,
@@ -52,10 +53,10 @@ def run(
 
     # 2. Score them, and return those that meet our threshold
     threshold_posts = format_posts(
-        sorted(threshold.posts_meeting_criteria(posts, boosted_tags, scorer), key=lambda p: p.score, reverse=True),
+        sorted(threshold.posts_meeting_criteria(posts, boosted_tags, halflife_hours, scorer), key=lambda p: p.score, reverse=True),
         mastodon_base_url)
     threshold_boosts = format_posts(
-        sorted(threshold.posts_meeting_criteria(boosts, boosted_tags, scorer), key=lambda p: p.score, reverse=True),
+        sorted(threshold.posts_meeting_criteria(boosts, boosted_tags, halflife_hours, scorer), key=lambda p: p.score, reverse=True),
         mastodon_base_url)
 
     # 3. Build the digest
@@ -91,14 +92,22 @@ if __name__ == "__main__":
         type=int,
     )
     arg_parser.add_argument(
+        "-d",
+        choices=range(1, 25),
+        default=0,
+        dest="halflife_hours",
+        help="The decay half-life of post scores in hours.",
+        type=int,
+    )
+    arg_parser.add_argument(
         "-s",
         choices=list(scorers.keys()),
         default="SimpleWeighted",
         dest="scorer",
-        help="""Which post scoring criteria to use.  
-            Simple scorers take a geometric mean of boosts and favs. 
-            Extended scorers include reply counts in the geometric mean. 
-            Weighted scorers multiply the score by an inverse sqaure root 
+        help="""Which post scoring criteria to use.
+            Simple scorers take a geometric mean of boosts and favs.
+            Extended scorers include reply counts in the geometric mean.
+            Weighted scorers multiply the score by an inverse sqaure root
             of the author's followers, to reduce the influence of large accounts.
         """,
     )
@@ -149,6 +158,7 @@ if __name__ == "__main__":
         scorers[args.scorer](),
         get_threshold_from_name(args.threshold),
         set(t.lower() for t in args.tags),
+        args.halflife_hours,
         mastodon_token,
         mastodon_base_url,
         mastodon_username,
