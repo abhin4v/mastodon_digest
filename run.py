@@ -34,6 +34,7 @@ def run(
     threshold: Threshold,
     boosted_tags: set[str],
     halflife_hours: int,
+    explore_frac: float,
     mastodon_token: str,
     mastodon_base_url: str,
     mastodon_username: str,
@@ -47,16 +48,17 @@ def run(
         access_token=mastodon_token,
         api_base_url=mastodon_base_url,
     )
+    non_threshold_posts_frac = explore_frac/(1-explore_frac)
 
     # 1. Fetch all the posts and boosts from our home timeline that we haven't interacted with
     posts, boosts = fetch_posts_and_boosts(hours, mst, mastodon_username)
 
     # 2. Score them, and return those that meet our threshold
     threshold_posts = format_posts(
-        sorted(threshold.posts_meeting_criteria(posts, boosted_tags, halflife_hours, scorer), key=lambda p: p.score, reverse=True),
+        threshold.posts_meeting_criteria(posts, boosted_tags, halflife_hours, non_threshold_posts_frac, scorer),
         mastodon_base_url)
     threshold_boosts = format_posts(
-        sorted(threshold.posts_meeting_criteria(boosts, boosted_tags, halflife_hours, scorer), key=lambda p: p.score, reverse=True),
+        threshold.posts_meeting_criteria(boosts, boosted_tags, halflife_hours, non_threshold_posts_frac, scorer),
         mastodon_base_url)
 
     # 3. Build the digest
@@ -73,6 +75,12 @@ def run(
         },
         output_dir=output_dir,
     )
+
+class ValidateExploreFracRange(argparse.Action):
+    def __call__(self, parser, namespace, value, option_string=None):
+        if not (0 <= value < 1):
+            raise argparse.ArgumentError(self, "The value should be greater than or equal to 0 and less than 1.")
+        setattr(namespace, self.dest, value)
 
 
 if __name__ == "__main__":
@@ -98,6 +106,14 @@ if __name__ == "__main__":
         dest="halflife_hours",
         help="The decay half-life of post scores in hours.",
         type=int,
+    )
+    arg_parser.add_argument(
+        "-e",
+        action=ValidateExploreFracRange,
+        default=0,
+        dest="explore_frac",
+        help="The fraction of posts that are exploratory.",
+        type=float,
     )
     arg_parser.add_argument(
         "-s",
@@ -159,6 +175,7 @@ if __name__ == "__main__":
         get_threshold_from_name(args.threshold),
         set(t.lower() for t in args.tags),
         args.halflife_hours,
+        args.explore_frac,
         mastodon_token,
         mastodon_base_url,
         mastodon_username,

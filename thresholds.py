@@ -4,6 +4,7 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 from scipy import stats
+import numpy as np
 
 if TYPE_CHECKING:
     from models import ScoredPost
@@ -22,20 +23,30 @@ class Threshold(Enum):
         self, posts: list[ScoredPost],
         boosted_tags: set[str],
         halflife_hours: int,
+        non_threshold_post_frac: float,
         scorer: Scorer
     ) -> list[ScoredPost]:
         """Returns a list of ScoredPosts that meet this Threshold with the given Scorer"""
 
         all_post_scores = [p.calc_score(boosted_tags, halflife_hours, scorer) for p in posts]
-        threshold_posts = [
-            p
-            for p in posts
-            if stats.percentileofscore(all_post_scores, p.score)
-            >= self.value
-        ]
+        threshold_posts = []
+        non_threshold_posts = []
+        for p in posts:
+          if stats.percentileofscore(all_post_scores, p.score) >= self.value:
+            threshold_posts.append(p)
+          else:
+            non_threshold_posts.append(p)
 
-        return threshold_posts
+        threshold_posts.sort(key=lambda p: p.score, reverse=True)
 
+        non_threshold_posts_sample = []
+        if non_threshold_post_frac > 0:
+          sample_size = int(non_threshold_post_frac * len(threshold_posts))
+          if sample_size > 0:
+            indices = np.random.choice(len(threshold_posts), size=sample_size, replace=False)
+            non_threshold_posts_sample = [non_threshold_posts[i] for i in indices]
+
+        return threshold_posts + non_threshold_posts_sample
 
 def get_thresholds():
     """Returns a dictionary mapping lowercase threshold names to values"""
