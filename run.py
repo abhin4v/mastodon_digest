@@ -33,6 +33,7 @@ def run(
     scorer: Scorer,
     threshold: Threshold,
     boosted_tags: set[str],
+    languages: set[str],
     halflife_hours: int,
     explore_frac: float,
     mastodon_token: str,
@@ -51,7 +52,7 @@ def run(
     non_threshold_posts_frac = explore_frac/(1-explore_frac)
 
     # 1. Fetch all the posts and boosts from our home timeline that we haven't interacted with
-    posts, boosts = fetch_posts_and_boosts(hours, mst, mastodon_username)
+    posts, boosts = fetch_posts_and_boosts(hours, mst, mastodon_username, languages)
 
     # 2. Score them, and return those that meet our threshold
     threshold_posts = format_posts(
@@ -151,6 +152,12 @@ if __name__ == "__main__":
         dest="tags",
         help="Tags to boost the scores,",
         action='append')
+    arg_parser.add_argument(
+        '-l',
+        default=[],
+        dest="langs",
+        help="Languages of posts to show in the digest.",
+        action='append')
 
     args = arg_parser.parse_args()
 
@@ -174,6 +181,7 @@ if __name__ == "__main__":
         scorers[args.scorer](),
         get_threshold_from_name(args.threshold),
         set(t.lower() for t in args.tags),
+        set(l.lower() for l in args.langs),
         args.halflife_hours,
         args.explore_frac,
         mastodon_token,

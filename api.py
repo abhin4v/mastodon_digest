@@ -11,7 +11,10 @@ if TYPE_CHECKING:
 
 
 def fetch_posts_and_boosts(
-    hours: int, mastodon_client: Mastodon, mastodon_username: str
+    hours: int, 
+    mastodon_client: Mastodon,
+    mastodon_username: str,
+    languages: set[str]
 ) -> tuple[list[ScoredPost], list[ScoredPost]]:
     """Fetches posts form the home timeline that the account hasn't interactied with"""
 
@@ -27,6 +30,8 @@ def fetch_posts_and_boosts(
     boosts = []
     seen_post_urls = set()
     total_posts_seen = 0
+    filter_by_lang = \
+      (lambda p: p['language'] is None or p['language'] in languages) if len(languages) > 0 else (lambda p: True)
 
     # Iterate over our home timeline until we run out of posts or we hit the limit
     response = mastodon_client.timeline(min_id=start, limit=40)
@@ -39,13 +44,16 @@ def fetch_posts_and_boosts(
             filtered_response = response
 
         for post in filtered_response:
-            if post["visibility"] != "public" and post["visibility"] != "unlisted":
-                continue
-
             boost = False
             if post["reblog"] is not None:
                 post = post["reblog"]  # look at the bosted post
                 boost = True
+
+            if post["visibility"] != "public" and post["visibility"] != "unlisted":
+                continue
+
+            if not filter_by_lang(post):
+              continue
 
             scored_post = ScoredPost(post)  # wrap the post data as a ScoredPost
 
