@@ -51,7 +51,6 @@ class ScoredPost:
                 self.score = TAG_BOOST * self.score
             if halflife_hours > 0:
                 self.score = self.score * (0.5 ** ((datetime.now(timezone.utc) - self.info["created_at"])/timedelta(hours = halflife_hours)))
-        return self.score
 
     @property
     def data(self):
