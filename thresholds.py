@@ -23,6 +23,7 @@ class Threshold(Enum):
         self,
         posts: list[ScoredPost],
         boosted_tags: set[str],
+        boosted_accounts: set[str],
         halflife_hours: int,
         non_threshold_post_frac: float,
         scorer: Scorer
@@ -30,7 +31,7 @@ class Threshold(Enum):
         """Returns a list of ScoredPosts that meet this Threshold with the given Scorer"""
 
         for p in posts:
-          p.calc_score(boosted_tags, halflife_hours, scorer)
+          p.calc_score(boosted_tags, boosted_accounts, halflife_hours, scorer)
 
         threads = self.group_posts_into_threads(posts)
         posts = self.choose_highest_scored_thread_posts(posts, threads)

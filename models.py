@@ -24,6 +24,7 @@ def enrich_post(post):
     post['favourites_count'] = status['favourites_count']
 
 TAG_BOOST = 1.2
+ACCOUNT_BOOST = 1.2
 
 class ScoredPost:
     def __init__(self, info: dict):
@@ -43,7 +44,7 @@ class ScoredPost:
     def get_home_url(self, mastodon_base_url: str) -> str:
         return f"{mastodon_base_url}/@{self.info['account']['acct']}/{self.info['id']}"
 
-    def calc_score(self, boosted_tags: set[str], halflife_hours: int, scorer: Scorer) -> float:
+    def calc_score(self, boosted_tags: set[str], boosted_accounts: set[str], halflife_hours: int, scorer: Scorer) -> float:
         self.score = scorer.score(self)
         tags = [tag.name.lower() for tag in self.info.tags]
         if self.score > 0:
@@ -51,6 +52,8 @@ class ScoredPost:
                 self.score = TAG_BOOST * self.score
             if halflife_hours > 0:
                 self.score = self.score * (0.5 ** ((datetime.now(timezone.utc) - self.info["created_at"])/timedelta(hours = halflife_hours)))
+            if self.info['account']['acct'] in boosted_accounts:
+                self.score = ACCOUNT_BOOST * self.score
 
     @property
     def data(self):

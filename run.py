@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 from jinja2 import Environment, FileSystemLoader
 from mastodon import Mastodon
 
-from api import fetch_posts_and_boosts
+from api import fetch_posts_and_boosts, fetch_boosted_accounts
 from scorers import get_scorers
 from thresholds import get_threshold_from_name, get_thresholds
 from formatters import format_posts
@@ -34,6 +34,7 @@ def run(
     threshold: Threshold,
     boosted_tags: set[str],
     languages: set[str],
+    boosted_lists: set[int],
     halflife_hours: int,
     explore_frac: float,
     mastodon_token: str,
@@ -51,15 +52,17 @@ def run(
     )
     non_threshold_posts_frac = explore_frac/(1-explore_frac)
 
+    boosted_accounts = fetch_boosted_accounts(mst, mastodon_username, boosted_lists)
+
     # 1. Fetch all the posts and boosts from our home timeline that we haven't interacted with
     posts, boosts = fetch_posts_and_boosts(hours, mst, mastodon_username, languages)
 
     # 2. Score them, and return those that meet our threshold
     threshold_posts = format_posts(
-        threshold.posts_meeting_criteria(posts, boosted_tags, halflife_hours, non_threshold_posts_frac, scorer),
+        threshold.posts_meeting_criteria(posts, boosted_tags, boosted_accounts, halflife_hours, non_threshold_posts_frac, scorer),
         mastodon_base_url)
     threshold_boosts = format_posts(
-        threshold.posts_meeting_criteria(boosts, boosted_tags, halflife_hours, non_threshold_posts_frac, scorer),
+        threshold.posts_meeting_criteria(boosts, boosted_tags, boosted_accounts, halflife_hours, non_threshold_posts_frac, scorer),
         mastodon_base_url)
 
     # 3. Build the digest
@@ -93,7 +96,7 @@ if __name__ == "__main__":
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     arg_parser.add_argument(
-        "-n",
+        "--timeline_hours",
         choices=range(1, 25),
         default=12,
         dest="hours",
@@ -101,7 +104,7 @@ if __name__ == "__main__":
         type=int,
     )
     arg_parser.add_argument(
-        "-d",
+        "--halflife_hours",
         choices=range(1, 25),
         default=0,
         dest="halflife_hours",
@@ -109,7 +112,7 @@ if __name__ == "__main__":
         type=int,
     )
     arg_parser.add_argument(
-        "-e",
+        "--explore_frac",
         action=ValidateExploreFracRange,
         default=0,
         dest="explore_frac",
@@ -117,7 +120,7 @@ if __name__ == "__main__":
         type=float,
     )
     arg_parser.add_argument(
-        "-s",
+        "--scorer",
         choices=list(scorers.keys()),
         default="SimpleWeighted",
         dest="scorer",
@@ -129,7 +132,7 @@ if __name__ == "__main__":
         """,
     )
     arg_parser.add_argument(
-        "-t",
+        "--threshold",
         choices=list(thresholds.keys()),
         default="normal",
         dest="threshold",
@@ -140,24 +143,31 @@ if __name__ == "__main__":
         """,
     )
     arg_parser.add_argument(
-        "-o",
+        "--output",
         default="./render/",
         dest="output_dir",
         help="Output directory for the rendered digest",
         required=False,
     )
     arg_parser.add_argument(
-        '-g',
+        '--tag',
         default=[],
         dest="tags",
         help="Tags to boost the scores,",
         action='append')
     arg_parser.add_argument(
-        '-l',
+        '--lang',
         default=[],
         dest="langs",
         help="Languages of posts to show in the digest.",
         action='append')
+    arg_parser.add_argument(
+        '--list_id',
+        default=[],
+        dest="lists",
+        help="Lists to boost the scores.",
+        action='append',
+        type=int)
 
     args = arg_parser.parse_args()
 
@@ -182,6 +192,7 @@ if __name__ == "__main__":
         get_threshold_from_name(args.threshold),
         set(t.lower() for t in args.tags),
         set(l.lower() for l in args.langs),
+        set(args.lists),
         args.halflife_hours,
         args.explore_frac,
         mastodon_token,

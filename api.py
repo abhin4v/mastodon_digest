@@ -84,3 +84,11 @@ def fetch_posts_and_boosts(
         post.fetch_metrics()
 
     return posts, boosts
+
+def fetch_boosted_accounts(mastodon_client: Mastodon, mastodon_username: str, boosted_lists: set[int]) -> set[str]:
+  boosted_accounts = []
+  for id in boosted_lists:
+    accounts = mastodon_client.list_accounts(id, limit="0")
+    boosted_accounts.extend(account['acct'] for account in accounts)
+
+  return boosted_accounts
