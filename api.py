@@ -13,11 +13,14 @@ if TYPE_CHECKING:
 def fetch_posts_and_boosts(
     hours: int, 
     mastodon_client: Mastodon,
-    languages: set[str]
+    languages: set[str],
+    exclude_trending: bool
 ) -> tuple[list[ScoredPost], list[ScoredPost]]:
     """Fetches posts form the home timeline that the account hasn't interactied with"""
     mastodon_user = mastodon_client.me()
     print(f"Fetching data for {mastodon_user['username']}")
+
+    trending_post_ids = set(p['id'] for p in mastodon_client.trending_statuses()) if exclude_trending else set()
 
     TIMELINE_LIMIT = 1000
 
@@ -51,6 +54,10 @@ def fetch_posts_and_boosts(
                 boost = True
 
             if post["visibility"] != "public" and post["visibility"] != "unlisted":
+                continue
+
+            if exclude_trending and post["id"] in trending_post_ids:
+                print(f"Excluded trending post {post['url']}")
                 continue
 
             if not filter_by_lang(post):

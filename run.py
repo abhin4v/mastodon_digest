@@ -37,6 +37,7 @@ def run(
     boosted_lists: set[int],
     halflife_hours: int,
     explore_frac: float,
+    exclude_trending: bool,
     mastodon_token: str,
     mastodon_base_url: str,
     output_dir: Path,
@@ -54,7 +55,7 @@ def run(
     boosted_accounts = fetch_boosted_accounts(mst, boosted_lists)
 
     # 1. Fetch all the posts and boosts from our home timeline that we haven't interacted with
-    posts, boosts = fetch_posts_and_boosts(hours, mst, languages)
+    posts, boosts = fetch_posts_and_boosts(hours, mst, languages, exclude_trending)
 
     # 2. Score them, and return those that meet our threshold
     threshold_posts = format_posts(
@@ -167,6 +168,13 @@ if __name__ == "__main__":
         help="Lists to boost the scores.",
         action='append',
         type=int)
+    arg_parser.add_argument(
+        '--exclude_trending',
+        default=False,
+        dest="exclude_trending",
+        help="Flag to exclude trending posts from the digest",
+        required=False,
+        action='store_true')
 
     args = arg_parser.parse_args()
 
@@ -191,6 +199,7 @@ if __name__ == "__main__":
         set(args.lists),
         args.halflife_hours,
         args.explore_frac,
+        args.exclude_trending,
         mastodon_token,
         mastodon_base_url,
         output_dir,
