@@ -5,6 +5,7 @@ let
     mastodon-py
     jinja2
     ipython
+    beautifulsoup4
   ];
   my-python = pkgs.python39.withPackages my-python-packages;
 in my-python.env

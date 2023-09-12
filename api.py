@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
 import itertools
+from bs4 import BeautifulSoup
 
 from models import ScoredPost
 
@@ -23,6 +24,7 @@ def fetch_posts_and_boosts(
     trending_post_ids = set(p['id'] for p in mastodon_client.trending_statuses()) if exclude_trending else set()
 
     TIMELINE_LIMIT = 1000
+    MIN_WORD_COUNT = 10
 
     # First, get our filters
     filters = mastodon_client.filters()
@@ -62,6 +64,16 @@ def fetch_posts_and_boosts(
 
             if not filter_by_lang(post):
               continue
+
+            soup = BeautifulSoup(post['content'], 'html.parser')
+            if (
+                len(soup.text.split()) <= MIN_WORD_COUNT
+                and len(post.media_attachments) == 0
+                and post.poll is None
+                and len(soup.find_all('a')) == 0
+               ):
+               print(f"Excluded short post {post['url']}")
+               continue
 
             scored_post = ScoredPost(post)  # wrap the post data as a ScoredPost
 
