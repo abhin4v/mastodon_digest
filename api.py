@@ -13,10 +13,11 @@ if TYPE_CHECKING:
 def fetch_posts_and_boosts(
     hours: int, 
     mastodon_client: Mastodon,
-    mastodon_username: str,
     languages: set[str]
 ) -> tuple[list[ScoredPost], list[ScoredPost]]:
     """Fetches posts form the home timeline that the account hasn't interactied with"""
+    mastodon_user = mastodon_client.me()
+    print(f"Fetching data for {mastodon_user['username']}")
 
     TIMELINE_LIMIT = 1000
 
@@ -64,7 +65,8 @@ def fetch_posts_and_boosts(
                     not scored_post.info["reblogged"]
                     and not scored_post.info["favourited"]
                     and not scored_post.info["bookmarked"]
-                    and scored_post.info["account"]["acct"] != mastodon_username
+                    and scored_post.info["account"]["id"] != mastodon_user["id"]
+                    and scored_post.info["in_reply_to_account_id"] != mastodon_user["id"]
                 ):
                     total_posts_seen += 1
                     # Append to either the boosts list or the posts lists
@@ -85,7 +87,7 @@ def fetch_posts_and_boosts(
 
     return posts, boosts
 
-def fetch_boosted_accounts(mastodon_client: Mastodon, mastodon_username: str, boosted_lists: set[int]) -> set[str]:
+def fetch_boosted_accounts(mastodon_client: Mastodon, boosted_lists: set[int]) -> set[str]:
   boosted_accounts = []
   for id in boosted_lists:
     accounts = mastodon_client.list_accounts(id, limit="0")
