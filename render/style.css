@@ -119,6 +119,14 @@ body {
     margin: 0px 5px 15px 5px;
 }
 
+.post.poll .post_content .content::before {
+    content: "Poll";
+    background-color: var(--post-decoration);
+    padding: 0.2rem;
+    border-radius: 0.2rem;
+    font-variant: small-caps;
+}
+
 .status {
 	width: 100%;
 }
@@ -278,13 +286,13 @@ body {
 
 
 @media (max-width: 720px) {
-    
+
     .header {
         text-align: center;
         width: 100%;
         max-width: 400px;
     }
-    
+
     .run_score {
         flex-direction: row;
 justify-content: center !important;
@@ -293,10 +301,9 @@ justify-content: center !important;
 }
 
 @media (min-width: 1180px) {
-    
+
     .blocks {
            margin-right: 230px;
     }
-    
-}
 
+}

@@ -1,6 +1,6 @@
 {% for post in posts %}
 
-<div class="post">
+<div class="post{% if post['is_poll'] %} poll{% endif %}">
 
   <div class="status">
 
@@ -16,7 +16,7 @@
 
           <a target="_blank" href="{{ post['account_url'] }}">
             <span class="displayname">{{ post['display_name'] }}</span>
-            <span class="username">@{{ post['username'] }}</span>
+            <span class="username">@{{ post['username'] }}{% if post['user_is_bot'] %} 🤖{% endif %}{% if post['user_is_group'] %} 👥{% endif %}</span>
           </a>
 
         </div>
