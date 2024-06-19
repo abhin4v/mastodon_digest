@@ -1,8 +1,8 @@
 def format_post(post, mastodon_base_url) -> dict:
-    
+
     def format_media(media):
         formats = {
-            'image': f'<div class="media"><img src={media["url"]} alt={media["description"] if media["description"] != None else ""}></img></div>',
+            'image': f'<div class="media"><a href={media["url"]}><img src={media["url"]} alt={media["description"] if media["description"] != None else ""}></img></a></div>',
             'video': f'<div class="media"><video src={media["url"]} controls width="100%"></video></div>',
             'gifv': f'<div class="media"><video src={media["url"]} autoplay loop muted playsinline width="100%"></video></div>'
         }
@@ -32,7 +32,7 @@ def format_post(post, mastodon_base_url) -> dict:
     replies_count = post.data['replies_count']
     reblogs_count = post.data['reblogs_count']
     favourites_count = post.data['favourites_count']
-    
+
     return dict(
         account_avatar=account_avatar,
         account_url=account_url,
@@ -48,6 +48,6 @@ def format_post(post, mastodon_base_url) -> dict:
         favourites_count=favourites_count,
         score=f"{post.score:.2f}"
     )
-    
+
 def format_posts(posts, mastodon_base_url):
     return [format_post(post, mastodon_base_url) for post in posts]

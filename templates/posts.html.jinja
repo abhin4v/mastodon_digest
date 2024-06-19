@@ -2,8 +2,8 @@
 
 <div class="post">
 
-  <div class="status">  
-  
+  <div class="status">
+
     <div class="post_header">
 
         <div class="user">
@@ -13,7 +13,7 @@
               <img src="{{ post['account_avatar'] }}">
             </a>
           </div>
-        
+
           <a target="_blank" href="{{ post['account_url'] }}">
             <span class="displayname">{{ post['display_name'] }}</span>
             <span class="username">@{{ post['username'] }}</span>
@@ -27,7 +27,7 @@
         </div>
 
     </div>
-      
+
     <div class="post_content">
 
       <div class="content">
@@ -45,16 +45,16 @@
     <div class="post_footer">
 
       <div class="published date" data-date="{{ post['created_at'] }}"></div>
-      
+
       <div class="reactions">
-        <span>⥄ {{post['replies_count']}}</span>
-        <span> ↻ {{post['reblogs_count']}}</span>
-        <span>★ {{post['favourites_count']}}</span>
-        <span>{{post['score']}}</span>
+        <span>💬 {{post['replies_count']}}</span>
+        <span>🔁 {{post['reblogs_count']}}</span>
+        <span>❤️ {{post['favourites_count']}}</span>
+        <span>🎯 {{post['score']}}</span>
       </div>
-      
+
     </div>
-    
+
   </div>
 
 </div>

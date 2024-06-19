@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 def fetch_posts_and_boosts(
-    hours: int, 
+    hours: int,
     mastodon_client: Mastodon,
     languages: set[str],
     exclude_trending: bool
@@ -75,6 +75,7 @@ def fetch_posts_and_boosts(
                print(f"Excluded short post {post['url']}")
                continue
 
+            post['content'] = str(soup)
             scored_post = ScoredPost(post)  # wrap the post data as a ScoredPost
 
             if scored_post.url not in seen_post_urls:

@@ -42,5 +42,6 @@ package-lock.json
 .vscode*
 
 .env
+.envrc
 
 render/*.html

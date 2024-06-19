@@ -7,5 +7,5 @@ let
     ipython
     beautifulsoup4
   ];
-  my-python = pkgs.python39.withPackages my-python-packages;
+  my-python = pkgs.python311.withPackages my-python-packages;
 in my-python.env
