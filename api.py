@@ -23,7 +23,7 @@ def fetch_posts_and_boosts(
 
     trending_post_ids = set(p['id'] for p in mastodon_client.trending_statuses()) if exclude_trending else set()
 
-    TIMELINE_LIMIT = 1000
+    TIMELINE_LIMIT = 2000
     MIN_WORD_COUNT = 10
 
     # First, get our filters
