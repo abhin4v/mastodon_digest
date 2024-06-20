@@ -1,10 +1,12 @@
+import html
+
 def format_post(post, mastodon_base_url) -> dict:
 
     def format_media(media):
         formats = {
-            'image': f'<div class="media"><a href={media["url"]}><img src={media["url"]} alt={media["description"] if media["description"] != None else ""}></img></a></div>',
-            'video': f'<div class="media"><video src={media["url"]} controls width="100%"></video></div>',
-            'gifv': f'<div class="media"><video src={media["url"]} autoplay loop muted playsinline width="100%"></video></div>'
+            'image': f'<div class="media"><a href="{media["url"]}"><img src="{media["url"]}" alt="{html.escape(media["description"]) if media["description"] != None else ""}"></img></a></div>',
+            'video': f'<div class="media"><video src="{media["url"]}" controls width="100%"></video></div>',
+            'gifv': f'<div class="media"><video src="{media["url"]}" autoplay loop muted playsinline width="100%"></video></div>'
         }
         if formats.__contains__(media.type):
             return formats[media.type]
