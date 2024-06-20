@@ -67,7 +67,7 @@ def fetch_posts_and_boosts(
 
             soup = BeautifulSoup(post['content'], 'html.parser')
             if (
-                len([word for word in soup.text.split() if not word.startswith('#')]) <= MIN_WORD_COUNT
+                len([word for word in soup.text.split() if not (word.startswith('#') or word.startswith('@'))]) <= MIN_WORD_COUNT
                 and len(post.media_attachments) == 0
                 and post.poll is None
                 and len(soup.find_all('a')) == 0

@@ -2,20 +2,25 @@ import html
 
 def format_post(post, mastodon_base_url) -> dict:
 
-    def format_media(media):
+    def format_media(media, media_count):
+        url = media["url"]
+        description = html.escape(media["description"]) if media["description"] != None else ""
+        caption = f"<figcaption>{description}</figcaption>" if media["description"] != None else ""
         formats = {
-            'image': f'<div class="media"><a href="{media["url"]}"><img src="{media["url"]}" alt="{html.escape(media["description"]) if media["description"] != None else ""}"></img></a></div>',
-            'video': f'<div class="media"><video src="{media["url"]}" controls width="100%"></video></div>',
-            'gifv': f'<div class="media"><video src="{media["url"]}" autoplay loop muted playsinline width="100%"></video></div>'
+            'image': f'<a href="{url}"><figure><img src="{url}" alt="{description}"></img>{caption}</figure></a>',
+            'video': f'<video src="{url}" controls width="100%"></video>',
+            'gifv': f'<figure><video src="{url}" autoplay loop muted playsinline width="100%" alt="{description}"></video>{caption}</figure>'
         }
         if formats.__contains__(media.type):
-            return formats[media.type]
+            style = " style=\"max-width: calc(50% - 5px);\"" if media_count > 1 else "";
+            return f'<div class="media"{style}>{formats[media.type]}</div>'
         else:
             return ""
 
     def format_displayname(display_name, emojis):
         for emoji in emojis:
-            display_name = display_name.replace(f':{emoji["shortcode"]}:', f'<img alt={emoji["shortcode"]} src="{emoji["url"]}">')
+            shortcode = html.escape(emoji["shortcode"])
+            display_name = display_name.replace(f':{emoji["shortcode"]}:', f'<img title="{shortcode}" alt="{shortcode}" src="{emoji["url"]}">')
         return display_name
 
     account_avatar = post.data['account']['avatar']
@@ -26,7 +31,7 @@ def format_post(post, mastodon_base_url) -> dict:
     )
     username = post.data['account']['username']
     content = post.data['content']
-    media = "\n".join([format_media(media) for media in post.data.media_attachments])
+    media = "\n".join([format_media(media, len(post.data.media_attachments)) for media in post.data.media_attachments])
     # created_at = post.data['created_at'].strftime('%B %d, %Y at %H:%M')
     created_at = post.data['created_at'].isoformat()
     home_link = f'<a href="https://main.elk.zone/{post.get_home_url(mastodon_base_url)}" target="_blank">home</a>'

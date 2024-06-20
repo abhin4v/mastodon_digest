@@ -220,6 +220,7 @@ body {
     display: flex;
     gap: 5px;
     justify-content: center;
+    flex-wrap: wrap;
 }
 
 .content p {
@@ -259,6 +260,30 @@ body {
 .media img, .media video {
     max-width: 100%;
     border-radius: 5px;
+}
+
+.media figure {
+    position: relative;
+    margin: 0;
+}
+
+.media figure > figcaption {
+    display: none;
+    padding: 0.4rem;
+    font-size: smaller;
+    border-radius: 0.3rem;
+    opacity: 0.9;
+    color: var(--text);
+    z-index: 9;
+    background-color: var(--background);
+    width: calc(-1.75rem + 100%);
+}
+
+.media figure:hover > figcaption {
+    display: block;
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
 }
 
 .post_footer {
