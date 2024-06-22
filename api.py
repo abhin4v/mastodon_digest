@@ -66,11 +66,15 @@ def fetch_posts_and_boosts(
               continue
 
             soup = BeautifulSoup(post['content'], 'html.parser')
+            words = [word for word in soup.text.split() if not (word.startswith('#') or word.startswith('@') or word.startswith('http'))]
+            if len(words) == 0:
+              continue
+
             if (
-                len([word for word in soup.text.split() if not (word.startswith('#') or word.startswith('@'))]) <= MIN_WORD_COUNT
+                len(words) <= MIN_WORD_COUNT
                 and len(post.media_attachments) == 0
                 and post.poll is None
-                and len(soup.find_all('a')) == 0
+                and len(soup.find_all(lambda tag: tag.name == 'a' and 'mention' not in tag.attrs.get('class',[]))) == 0
                ):
                print(f"Excluded short post {post['url']}")
                continue
