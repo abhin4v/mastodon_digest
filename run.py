@@ -36,6 +36,7 @@ def run(
     languages: set[str],
     boosted_lists: set[int],
     halflife_hours: int,
+    max_user_post_count: int,
     explore_frac: float,
     exclude_trending: bool,
     mastodon_token: str,
@@ -59,10 +60,10 @@ def run(
 
     # 2. Score them, and return those that meet our threshold
     threshold_posts = format_posts(
-        threshold.posts_meeting_criteria(posts, boosted_tags, boosted_accounts, halflife_hours, non_threshold_posts_frac, scorer),
+        threshold.posts_meeting_criteria(posts, boosted_tags, boosted_accounts, halflife_hours, non_threshold_posts_frac, max_user_post_count, scorer),
         mastodon_base_url)
     threshold_boosts = format_posts(
-        threshold.posts_meeting_criteria(boosts, boosted_tags, boosted_accounts, halflife_hours, non_threshold_posts_frac, scorer),
+        threshold.posts_meeting_criteria(boosts, boosted_tags, boosted_accounts, halflife_hours, non_threshold_posts_frac, max_user_post_count, scorer),
         mastodon_base_url)
 
     # 3. Build the digest
@@ -109,6 +110,13 @@ if __name__ == "__main__":
         default=0,
         dest="halflife_hours",
         help="The decay half-life of post scores in hours.",
+        type=int,
+    )
+    arg_parser.add_argument(
+        "--max_user_post_count",
+        default=3,
+        dest="max_user_post_count",
+        help="The maximum number of posts by a user in a stream in the digest.",
         type=int,
     )
     arg_parser.add_argument(
@@ -190,6 +198,7 @@ if __name__ == "__main__":
     if not mastodon_base_url:
         sys.exit("Missing environment variable: MASTODON_BASE_URL")
 
+    print(f"Running with args: {vars(args)}")
     run(
         args.hours,
         scorers[args.scorer](),
@@ -198,6 +207,7 @@ if __name__ == "__main__":
         set(l.lower() for l in args.langs),
         set(args.lists),
         args.halflife_hours,
+        args.max_user_post_count,
         args.explore_frac,
         args.exclude_trending,
         mastodon_token,

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from enum import Enum
 from typing import TYPE_CHECKING
+from collections import defaultdict
+from itertools import chain
 
 from scipy import stats
 import numpy as np
@@ -26,6 +28,7 @@ class Threshold(Enum):
         boosted_accounts: set[str],
         halflife_hours: int,
         non_threshold_post_frac: float,
+        max_user_post_count : int,
         scorer: Scorer
     ) -> list[ScoredPost]:
         """Returns a list of ScoredPosts that meet this Threshold with the given Scorer"""
@@ -35,6 +38,7 @@ class Threshold(Enum):
 
         threads = self.group_posts_into_threads(posts)
         posts = self.choose_highest_scored_thread_posts(posts, threads)
+        posts = self.choose_highest_scored_user_posts(posts, max_user_post_count)
 
         all_post_scores = [p.score for p in posts]
         threshold_posts = []
@@ -111,6 +115,20 @@ class Threshold(Enum):
             del posts_by_id[post_id]
 
       return posts_by_id.values()
+
+    def choose_highest_scored_user_posts(
+          self,
+          posts: list[ScoredPosts],
+          max_post_count : int) -> list[ScoredPost]:
+      posts_by_user = defaultdict(list)
+      for post in posts:
+        posts_by_user[post.data['account']['acct']].append(post)
+
+      for acct, user_posts in posts_by_user.items():
+        posts_by_user[acct] = sorted(user_posts, key=lambda p: p.score, reverse=True)[:max_post_count]
+
+      return list(chain.from_iterable(posts_by_user.values()))
+
 
 def get_thresholds():
     """Returns a dictionary mapping lowercase threshold names to values"""
