@@ -4,12 +4,12 @@ from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
 import itertools
 from bs4 import BeautifulSoup
+import requests
 
 from models import ScoredPost
 
 if TYPE_CHECKING:
     from mastodon import Mastodon
-
 
 def fetch_posts_and_boosts(
     hours: int,
@@ -31,6 +31,12 @@ def fetch_posts_and_boosts(
 
     # Set our start query
     start = datetime.now(timezone.utc) - timedelta(hours=hours)
+
+    known_instance_domains = set()
+    with requests.get("https://nodes.fediverse.party/nodes.json") as resp:
+        domains = resp.json()
+        assert type(domains) == list
+        known_instance_domains = set("://" + domain + "/" for domain in domains)
 
     posts = []
     boosts = []
@@ -79,6 +85,9 @@ def fetch_posts_and_boosts(
                print(f"Excluded short post {post['url']}")
                continue
 
+            for mention in soup.find_all('a', class_ = "mention"):
+                mention.attrs['href'] = "https://main.elk.zone/" + mention.attrs['href']
+
             post['content'] = str(soup)
             scored_post = ScoredPost(post)  # wrap the post data as a ScoredPost
 
@@ -106,6 +115,13 @@ def fetch_posts_and_boosts(
 
     total_count = len(posts) + len(boosts)
     for i, post in enumerate(itertools.chain(posts, boosts)):
+        soup = BeautifulSoup(post.data['content'], 'html.parser')
+        non_mention_links = soup.find_all(lambda tag: tag.name == 'a' and 'mention' not in tag.attrs.get('class',[]))
+        for link in non_mention_links:
+            if 'href' in link.attrs and any(link.attrs['href'].find(domain) != -1 for domain in known_instance_domains):
+                 link.attrs['href'] = "https://main.elk.zone/" + link.attrs['href']
+
+        post.data['content'] = str(soup)
         print(f"[{i+1}/{total_count}] Fetching metrics for {post.url}")
         post.fetch_metrics()
 

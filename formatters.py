@@ -24,7 +24,7 @@ def format_post(post, mastodon_base_url) -> dict:
         return display_name
 
     account_avatar = post.data['account']['avatar']
-    account_url = post.data['account']['url']
+    account_url = "https://main.elk.zone/" + post.data['account']['url']
     display_name = format_displayname(
         post.data['account']['display_name'],
         post.data['account']['emojis']
