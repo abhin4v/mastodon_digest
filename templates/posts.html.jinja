@@ -1,13 +1,8 @@
 {% for post in posts %}
-
 <div class="post{% if post['is_poll'] %} poll{% endif %}">
-
   <div class="status">
-
     <div class="post_header">
-
         <div class="user">
-
           <div class="avatar">
             <a target="_blank" href="{{ post['account_url'] }}">
               <img src="{{ post['account_avatar'] }}">
@@ -18,45 +13,40 @@
             <span class="displayname">{{ post['display_name'] }}</span>
             <span class="username">@{{ post['username'] }}{% if post['user_is_bot'] %} 🤖{% endif %}{% if post['user_is_group'] %} 👥{% endif %}</span>
           </a>
-
         </div>
-
         <div class="links">
           {{ post['home_link'] }}
           {{ post['original_link'] }}
         </div>
-
     </div>
 
+    {% if post['sensitive'] %}
+    <details class="post_wrapper">
+      <summary class="post_spoiler">{{ post['spoiler_text'] }}</summary>
+    {% endif %}
     <div class="post_content">
-
       <div class="content">
 	      {{ post['content'] }}
       </div>
-
      {% if post['media'] %}
         <div class="medias">
 	        {{ post['media'] }}
         </div>
      {% endif %}
-
     </div>
+    {% if post['sensitive'] %}
+    </details>
+    {% endif %}
 
     <div class="post_footer">
-
       <div class="published date" data-date="{{ post['created_at'] }}"></div>
-
       <div class="reactions">
         <span>💬 {{post['replies_count']}}</span>
         <span>🔁 {{post['reblogs_count']}}</span>
         <span>❤️ {{post['favourites_count']}}</span>
         <span>🎯 {{post['score']}}</span>
       </div>
-
     </div>
-
   </div>
-
 </div>
-
 {% endfor %}

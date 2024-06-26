@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
 def fetch_posts_and_boosts(
     hours: int,
+    max_post_age_hours: int,
     mastodon_client: Mastodon,
     languages: set[str],
     exclude_trending: bool
@@ -31,6 +32,8 @@ def fetch_posts_and_boosts(
 
     # Set our start query
     start = datetime.now(timezone.utc) - timedelta(hours=hours)
+
+    min_post_created_at = datetime.now(timezone.utc) - timedelta(hours=max_post_age_hours)
 
     known_instance_domains = set()
     with requests.get("https://nodes.fediverse.party/nodes.json") as resp:
@@ -60,6 +63,10 @@ def fetch_posts_and_boosts(
             if post["reblog"] is not None:
                 post = post["reblog"]  # look at the bosted post
                 boost = True
+
+            if post['created_at'] < min_post_created_at:
+                print(f"Excluded old post {post['url']}")
+                continue
 
             if post["visibility"] != "public" and post["visibility"] != "unlisted":
                 continue

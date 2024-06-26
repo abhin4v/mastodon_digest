@@ -1,37 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
-
   <head>
-
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Mastodon Digest</title>
     <link rel="stylesheet" type="text/css" href="style.css">
     <link rel="icon" href="icon.png">
-
   </head>
 
   <body>
-
     <div id="container">
-
       <div class="blocks">
-
         <div class="header">
-
           <div class="title">Mastodon Digest</div>
-
           <div class="run_time date" data-date="{{ rendered_at }}"></div>
           <div class="run_score">
             <div><span class="meta_desc">for the past</span><span class="meta_data">{{ hours }} hours</span></div>
             <div><span class="meta_data">{{ scorer.lower() }}</span><span class="meta_desc">scorer</span></div>
             <div><span class="meta_data">{{ threshold }}</span><span class="meta_desc">threshold</span></div>
           </div>
-          
         </div>
 
         <div class="stream">
-          <div class="stream_title"><span>Posts</span></div>
+          <div class="stream_title"><span>{{ posts | length }} Posts</span></div>
           <div class="posts">
             {% with posts=posts %}
             {% include "posts.html.jinja" %}
@@ -40,7 +31,7 @@
         </div>
 
         <div class="stream">
-          <div class="stream_title"><span>Boosts</span></div>
+          <div class="stream_title"><span>{{ boosts | length }} Boosts</span></div>
           <div class="posts">
             {% with posts=boosts %}
             {% include "posts.html.jinja" %}
@@ -49,9 +40,7 @@
         </div>
 
       </div>
-      
     </div>
-    
     <script type='text/javascript' src="style.js"></script>
   </body>
 

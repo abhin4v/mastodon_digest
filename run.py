@@ -35,6 +35,7 @@ def run(
     boosted_tags: set[str],
     languages: set[str],
     boosted_lists: set[int],
+    max_post_age_hours: int,
     halflife_hours: int,
     max_user_post_count: int,
     explore_frac: float,
@@ -56,7 +57,7 @@ def run(
     boosted_accounts = fetch_boosted_accounts(mst, boosted_lists)
 
     # 1. Fetch all the posts and boosts from our home timeline that we haven't interacted with
-    posts, boosts = fetch_posts_and_boosts(hours, mst, languages, exclude_trending)
+    posts, boosts = fetch_posts_and_boosts(hours, max_post_age_hours, mst, languages, exclude_trending)
 
     # 2. Score them, and return those that meet our threshold
     threshold_posts = format_posts(
@@ -102,6 +103,13 @@ if __name__ == "__main__":
         default=12,
         dest="hours",
         help="The number of hours to include in the Mastodon Digest",
+        type=int,
+    )
+    arg_parser.add_argument(
+        "--max_post_age_hours",
+        default=240,
+        dest="max_post_age_hours",
+        help="The maximum age of posts in hours.",
         type=int,
     )
     arg_parser.add_argument(
@@ -206,6 +214,7 @@ if __name__ == "__main__":
         set(t.lower() for t in args.tags),
         set(l.lower() for l in args.langs),
         set(args.lists),
+        args.max_post_age_hours,
         args.halflife_hours,
         args.max_user_post_count,
         args.explore_frac,

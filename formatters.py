@@ -47,6 +47,8 @@ def format_post(post, mastodon_base_url) -> dict:
         username=username,
         user_is_bot=post.data['account']['bot'],
         user_is_group=post.data['account']['group'],
+        sensitive=post.data['sensitive'],
+        spoiler_text=post.data['spoiler_text'],
         content=content,
         media=media,
         is_poll='poll' in post.data and post.data['poll'] is not None,

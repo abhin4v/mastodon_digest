@@ -127,6 +127,20 @@ body {
     font-variant: small-caps;
 }
 
+details.post_wrapper summary.post_spoiler {
+    padding: 15px 15px 15px 0;
+    list-style-type: '⚠️ ';
+    cursor: pointer;
+}
+
+details[open].post_wrapper summary.post_spoiler {
+    padding-bottom: 0;
+}
+
+details.post_wrapper .content {
+    padding: 0;
+}
+
 .status {
 	width: 100%;
 }

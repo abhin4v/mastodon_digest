@@ -27,7 +27,7 @@ jobs:
           MASTODON_BASE_URL: ${{ secrets.MASTODON_BASE_URL }}
           MASTODON_USERNAME: ${{ secrets.MASTODON_USERNAME }}
         run: |
-          python run.py --timeline_hours 24 --halflife_hours 6 --scorer ExtendedSimpleWeighted --threshold lax --tag Haskell --tag compilers --tag ProgrammingLanguages --tag NixOS --tag PLT --tag lisp --tag FunctionalProgramming --tag QuatifiedSelf --tag SelfHosting --tag running --explore_frac 0.2 --lang en --lang hi --list_id 1 --list_id 6 --list_id 12 --exclude_trending
+          python run.py --timeline_hours 24 --max_post_age_hours 36 --halflife_hours 6 --scorer ExtendedSimpleWeighted --threshold lax --tag Haskell --tag compilers --tag ProgrammingLanguages --tag NixOS --tag PLT --tag lisp --tag FunctionalProgramming --tag QuatifiedSelf --tag SelfHosting --tag running --explore_frac 0.2 --lang en --lang hi --list_id 1 --list_id 6 --list_id 12 --exclude_trending
       - name: publish
         uses: crazy-max/ghaction-github-pages@v3
         with:
