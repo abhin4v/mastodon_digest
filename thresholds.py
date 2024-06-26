@@ -1,16 +1,10 @@
-from __future__ import annotations
-
-from enum import Enum
-from typing import TYPE_CHECKING
 from collections import defaultdict
+from enum import Enum
 from itertools import chain
-
+from models import ScoredPost
 from scipy import stats
+from scorers import Scorer
 import numpy as np
-
-if TYPE_CHECKING:
-    from models import ScoredPost
-    from scorers import Scorer
 
 
 class Threshold(Enum):
@@ -18,7 +12,7 @@ class Threshold(Enum):
     NORMAL = 95
     STRICT = 98
 
-    def get_name(self):
+    def get_name(self) -> str:
         return self.name.lower()
 
     def posts_meeting_criteria(
@@ -61,7 +55,7 @@ class Threshold(Enum):
         return threshold_posts + non_threshold_posts_sample
 
     def group_posts_into_threads(self, posts: list[ScoredPost]) -> list[set[int]]:
-        post_reply_to_id_map = {}
+        post_reply_to_id_map: dict[int, set[int]] = {}
 
         for post in posts:
             if post.data["in_reply_to_id"] is not None:
@@ -90,12 +84,12 @@ class Threshold(Enum):
         for id in post_reply_to_id_map:
             post_reply_to_id_map[id].add(id)
 
-        return post_reply_to_id_map.values()
+        return list(post_reply_to_id_map.values())
 
     def choose_highest_scored_thread_posts(
-        self, posts: list[ScoredPosts], threads: set[set[int]]
+        self, posts: list[ScoredPost], threads: list[set[int]]
     ) -> list[ScoredPost]:
-        posts_by_id = {}
+        posts_by_id: dict[int, ScoredPost] = {}
         for post in posts:
             posts_by_id[post.data["id"]] = post
 
@@ -118,10 +112,10 @@ class Threshold(Enum):
                 if post_id in posts_by_id:
                     del posts_by_id[post_id]
 
-        return posts_by_id.values()
+        return list(posts_by_id.values())
 
     def choose_highest_scored_user_posts(
-        self, posts: list[ScoredPosts], max_post_count: int
+        self, posts: list[ScoredPost], max_post_count: int
     ) -> list[ScoredPost]:
         posts_by_user = defaultdict(list)
         for post in posts:
@@ -135,10 +129,10 @@ class Threshold(Enum):
         return list(chain.from_iterable(posts_by_user.values()))
 
 
-def get_thresholds():
+def get_thresholds() -> dict[str, int]:
     """Returns a dictionary mapping lowercase threshold names to values"""
 
-    return {i.get_name(): i.value for i in Threshold}
+    return {t.get_name(): t.value for t in Threshold}
 
 
 def get_threshold_from_name(name: str) -> Threshold:

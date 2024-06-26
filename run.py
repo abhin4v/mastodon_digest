@@ -1,23 +1,16 @@
-from __future__ import annotations
-
+from api import fetch_posts_and_boosts, fetch_boosted_accounts
+from datetime import datetime
+from formatters import format_posts
+from jinja2 import Environment, FileSystemLoader
+from mastodon import Mastodon
+from pathlib import Path
+from scorers import get_scorers
+from scorers import Scorer
+from thresholds import get_threshold_from_name, get_thresholds
+from thresholds import Threshold
 import argparse
 import os
 import sys
-from datetime import datetime
-from pathlib import Path
-from typing import TYPE_CHECKING
-
-from jinja2 import Environment, FileSystemLoader
-from mastodon import Mastodon
-
-from api import fetch_posts_and_boosts, fetch_boosted_accounts
-from scorers import get_scorers
-from thresholds import get_threshold_from_name, get_thresholds
-from formatters import format_posts
-
-if TYPE_CHECKING:
-    from scorers import Scorer
-    from thresholds import Threshold
 
 
 def render_digest(context: dict, output_dir: Path) -> None:
@@ -104,7 +97,7 @@ def run(
 
 
 class ValidateExploreFracRange(argparse.Action):
-    def __call__(self, parser, namespace, value, option_string=None):
+    def __call__(self, parser, namespace, value, option_string=None) -> None:
         if not (0 <= value < 1):
             raise argparse.ArgumentError(
                 self, "The value should be greater than or equal to 0 and less than 1."

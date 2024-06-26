@@ -1,9 +1,11 @@
 import html
 
+from models import ScoredPost
 
-def format_post(post, mastodon_base_url) -> dict:
 
-    def format_media(media, media_count):
+def format_post(post: ScoredPost, mastodon_base_url: str) -> dict:
+
+    def format_media(media: dict, media_count: int) -> str:
         url = media["url"]
         description = html.escape(media["description"]) if media["description"] != None else ""
         caption = f"<figcaption>{description}</figcaption>" if media["description"] != None else ""
@@ -12,13 +14,13 @@ def format_post(post, mastodon_base_url) -> dict:
             "video": f'<video src="{url}" controls width="100%"></video>',
             "gifv": f'<figure><video src="{url}" autoplay loop muted playsinline width="100%" alt="{description}"></video>{caption}</figure>',
         }
-        if formats.__contains__(media.type):
+        if media["type"] in formats:
             style = ' style="max-width: calc(50% - 5px);"' if media_count > 1 else ""
-            return f'<div class="media"{style}>{formats[media.type]}</div>'
+            return f'<div class="media"{style}>{formats[media["type"]]}</div>'
         else:
             return ""
 
-    def format_displayname(display_name, emojis):
+    def format_displayname(display_name: str, emojis: dict) -> str:
         for emoji in emojis:
             shortcode = html.escape(emoji["shortcode"])
             display_name = display_name.replace(
@@ -36,14 +38,14 @@ def format_post(post, mastodon_base_url) -> dict:
     content = post.data["content"]
     media = "\n".join(
         [
-            format_media(media, len(post.data.media_attachments))
-            for media in post.data.media_attachments
+            format_media(media, len(post.data["media_attachments"]))
+            for media in post.data["media_attachments"]
         ]
     )
     # created_at = post.data['created_at'].strftime('%B %d, %Y at %H:%M')
     created_at = post.data["created_at"].isoformat()
     home_link = f'<a href="https://main.elk.zone/{post.get_home_url(mastodon_base_url)}" target="_blank">home</a>'
-    original_link = f'<a href="{post.data.url}" target="_blank">original</a>'
+    original_link = f'<a href="{post.data["url"]}" target="_blank">original</a>'
     replies_count = post.data["replies_count"]
     reblogs_count = post.data["reblogs_count"]
     favourites_count = post.data["favourites_count"]
@@ -70,5 +72,5 @@ def format_post(post, mastodon_base_url) -> dict:
     )
 
 
-def format_posts(posts, mastodon_base_url):
+def format_posts(posts: list[ScoredPost], mastodon_base_url: str) -> list[dict]:
     return [format_post(post, mastodon_base_url) for post in posts]
