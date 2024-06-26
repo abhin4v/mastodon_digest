@@ -29,39 +29,33 @@ def format_post(post: ScoredPost, mastodon_base_url: str) -> dict:
             )
         return display_name
 
-    account_avatar = post.data["account"]["avatar"]
-    account_url = "https://main.elk.zone/" + post.data["account"]["url"]
-    display_name = format_displayname(
-        post.data["account"]["display_name"], post.data["account"]["emojis"]
-    )
-    username = post.data["account"]["username"]
-    content = post.data["content"]
+    account_avatar = post.account["avatar"]
+    account_url = "https://main.elk.zone/" + post.account["url"]
+    display_name = format_displayname(post.account["display_name"], post.account["emojis"])
+    username = post.account["username"]
+    content = post.content
     media = "\n".join(
-        [
-            format_media(media, len(post.data["media_attachments"]))
-            for media in post.data["media_attachments"]
-        ]
+        [format_media(media, len(post.media_attachments)) for media in post.media_attachments]
     )
-    # created_at = post.data['created_at'].strftime('%B %d, %Y at %H:%M')
-    created_at = post.data["created_at"].isoformat()
+    created_at = post.created_at.isoformat()
     home_link = f'<a href="https://main.elk.zone/{post.get_home_url(mastodon_base_url)}" target="_blank">home</a>'
-    original_link = f'<a href="{post.data["url"]}" target="_blank">original</a>'
-    replies_count = post.data["replies_count"]
-    reblogs_count = post.data["reblogs_count"]
-    favourites_count = post.data["favourites_count"]
+    original_link = f'<a href="{post.url}" target="_blank">original</a>'
+    replies_count = post.replies_count
+    reblogs_count = post.reblogs_count
+    favourites_count = post.favourites_count
 
     return dict(
         account_avatar=account_avatar,
         account_url=account_url,
         display_name=display_name,
         username=username,
-        user_is_bot=post.data["account"]["bot"],
-        user_is_group=post.data["account"]["group"],
-        sensitive=post.data["sensitive"],
-        spoiler_text=post.data["spoiler_text"],
+        user_is_bot=post.account["bot"],
+        user_is_group=post.account["group"],
+        sensitive=post.sensitive,
+        spoiler_text=post.spoiler_text,
         content=content,
         media=media,
-        is_poll="poll" in post.data and post.data["poll"] is not None,
+        is_poll="poll" in post._data and post.poll is not None,
         created_at=created_at,
         home_link=home_link,
         original_link=original_link,

@@ -58,8 +58,8 @@ class Threshold(Enum):
         post_reply_to_id_map: dict[int, set[int]] = {}
 
         for post in posts:
-            if post.data["in_reply_to_id"] is not None:
-                post_reply_to_id_map[post.data["id"]] = {post.data["in_reply_to_id"]}
+            if post.in_reply_to_id is not None:
+                post_reply_to_id_map[post.id] = {post.in_reply_to_id}
 
         while True:
             changed = False
@@ -91,7 +91,7 @@ class Threshold(Enum):
     ) -> list[ScoredPost]:
         posts_by_id: dict[int, ScoredPost] = {}
         for post in posts:
-            posts_by_id[post.data["id"]] = post
+            posts_by_id[post.id] = post
 
         max_score_posts = [
             max(
@@ -119,7 +119,7 @@ class Threshold(Enum):
     ) -> list[ScoredPost]:
         posts_by_user = defaultdict(list)
         for post in posts:
-            posts_by_user[post.data["account"]["acct"]].append(post)
+            posts_by_user[post.account["acct"]].append(post)
 
         for acct, user_posts in posts_by_user.items():
             posts_by_user[acct] = sorted(user_posts, key=lambda p: p.score, reverse=True)[

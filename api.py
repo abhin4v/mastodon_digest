@@ -107,15 +107,15 @@ def fetch_posts_and_boosts(
             post["content"] = str(soup)
             scored_post = ScoredPost(post)  # wrap the post data as a ScoredPost
 
-            if scored_post.data["url"] not in seen_post_urls:
+            if scored_post.url not in seen_post_urls:
                 # Apply our local filters
                 # Basically ignore my posts or posts I've interacted with
                 if (
-                    not scored_post.data["reblogged"]
-                    and not scored_post.data["favourited"]
-                    and not scored_post.data["bookmarked"]
-                    and scored_post.data["account"]["id"] != mastodon_user["id"]
-                    and scored_post.data["in_reply_to_account_id"] != mastodon_user["id"]
+                    not scored_post.reblogged
+                    and not scored_post.favourited
+                    and not scored_post.bookmarked
+                    and scored_post.account["id"] != mastodon_user["id"]
+                    and scored_post.in_reply_to_account_id != mastodon_user["id"]
                 ):
                     total_posts_seen += 1
                     # Append to either the boosts list or the posts lists
@@ -123,14 +123,14 @@ def fetch_posts_and_boosts(
                         boosts.append(scored_post)
                     else:
                         posts.append(scored_post)
-                    seen_post_urls.add(scored_post.data["url"])
+                    seen_post_urls.add(scored_post.url)
 
         # fetch the previous (because of reverse chron) page of results
         response = mastodon_client.fetch_previous(response)
 
     total_count = len(posts) + len(boosts)
     for i, scored_post in enumerate(itertools.chain(posts, boosts)):
-        soup = BeautifulSoup(scored_post.data["content"], "html.parser")
+        soup = BeautifulSoup(scored_post.content, "html.parser")
         non_mention_links = soup.find_all(
             lambda tag: tag.name == "a" and "mention" not in tag.attrs.get("class", [])
         )
@@ -140,8 +140,8 @@ def fetch_posts_and_boosts(
             ):
                 link.attrs["href"] = "https://main.elk.zone/" + link.attrs["href"]
 
-        scored_post.data["content"] = str(soup)
-        print(f"[{i+1}/{total_count}] Fetching metrics for {scored_post.data['url']}")
+        scored_post.set_content(str(soup))
+        print(f"[{i+1}/{total_count}] Fetching metrics for {scored_post.url}")
         scored_post.fetch_metrics()
 
     return posts, boosts
