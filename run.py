@@ -24,7 +24,7 @@ def render_digest(context: dict, output_dir: Path) -> None:
     environment = Environment(loader=FileSystemLoader("templates/"))
     template = environment.get_template("digest.html.jinja")
     output_html = template.render(context)
-    output_file_path = output_dir / 'index.html'
+    output_file_path = output_dir / "index.html"
     output_file_path.write_text(output_html)
 
 
@@ -52,20 +52,40 @@ def run(
         access_token=mastodon_token,
         api_base_url=mastodon_base_url,
     )
-    non_threshold_posts_frac = explore_frac/(1-explore_frac)
+    non_threshold_posts_frac = explore_frac / (1 - explore_frac)
 
     boosted_accounts = fetch_boosted_accounts(mst, boosted_lists)
 
     # 1. Fetch all the posts and boosts from our home timeline that we haven't interacted with
-    posts, boosts = fetch_posts_and_boosts(hours, max_post_age_hours, mst, languages, exclude_trending)
+    posts, boosts = fetch_posts_and_boosts(
+        hours, max_post_age_hours, mst, languages, exclude_trending
+    )
 
     # 2. Score them, and return those that meet our threshold
     threshold_posts = format_posts(
-        threshold.posts_meeting_criteria(posts, boosted_tags, boosted_accounts, halflife_hours, non_threshold_posts_frac, max_user_post_count, scorer),
-        mastodon_base_url)
+        threshold.posts_meeting_criteria(
+            posts,
+            boosted_tags,
+            boosted_accounts,
+            halflife_hours,
+            non_threshold_posts_frac,
+            max_user_post_count,
+            scorer,
+        ),
+        mastodon_base_url,
+    )
     threshold_boosts = format_posts(
-        threshold.posts_meeting_criteria(boosts, boosted_tags, boosted_accounts, halflife_hours, non_threshold_posts_frac, max_user_post_count, scorer),
-        mastodon_base_url)
+        threshold.posts_meeting_criteria(
+            boosts,
+            boosted_tags,
+            boosted_accounts,
+            halflife_hours,
+            non_threshold_posts_frac,
+            max_user_post_count,
+            scorer,
+        ),
+        mastodon_base_url,
+    )
 
     # 3. Build the digest
     render_digest(
@@ -74,7 +94,7 @@ def run(
             "posts": threshold_posts,
             "boosts": threshold_boosts,
             "mastodon_base_url": mastodon_base_url,
-            "rendered_at": datetime.utcnow().isoformat() + 'Z',
+            "rendered_at": datetime.utcnow().isoformat() + "Z",
             # "rendered_at": datetime.utcnow().strftime('%B %d, %Y at %H:%M:%S UTC'),
             "threshold": threshold.get_name(),
             "scorer": scorer.get_name(),
@@ -82,10 +102,13 @@ def run(
         output_dir=output_dir,
     )
 
+
 class ValidateExploreFracRange(argparse.Action):
     def __call__(self, parser, namespace, value, option_string=None):
         if not (0 <= value < 1):
-            raise argparse.ArgumentError(self, "The value should be greater than or equal to 0 and less than 1.")
+            raise argparse.ArgumentError(
+                self, "The value should be greater than or equal to 0 and less than 1."
+            )
         setattr(namespace, self.dest, value)
 
 
@@ -166,31 +189,31 @@ if __name__ == "__main__":
         required=False,
     )
     arg_parser.add_argument(
-        '--tag',
-        default=[],
-        dest="tags",
-        help="Tags to boost the scores,",
-        action='append')
+        "--tag", default=[], dest="tags", help="Tags to boost the scores,", action="append"
+    )
     arg_parser.add_argument(
-        '--lang',
+        "--lang",
         default=[],
         dest="langs",
         help="Languages of posts to show in the digest.",
-        action='append')
+        action="append",
+    )
     arg_parser.add_argument(
-        '--list_id',
+        "--list_id",
         default=[],
         dest="lists",
         help="Lists to boost the scores.",
-        action='append',
-        type=int)
+        action="append",
+        type=int,
+    )
     arg_parser.add_argument(
-        '--exclude_trending',
+        "--exclude_trending",
         default=False,
         dest="exclude_trending",
         help="Flag to exclude trending posts from the digest",
         required=False,
-        action='store_true')
+        action="store_true",
+    )
 
     args = arg_parser.parse_args()
 

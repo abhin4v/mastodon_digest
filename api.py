@@ -11,18 +11,21 @@ from models import ScoredPost
 if TYPE_CHECKING:
     from mastodon import Mastodon
 
+
 def fetch_posts_and_boosts(
     hours: int,
     max_post_age_hours: int,
     mastodon_client: Mastodon,
     languages: set[str],
-    exclude_trending: bool
+    exclude_trending: bool,
 ) -> tuple[list[ScoredPost], list[ScoredPost]]:
     """Fetches posts form the home timeline that the account hasn't interactied with"""
     mastodon_user = mastodon_client.me()
     print(f"Fetching data for {mastodon_user['username']}")
 
-    trending_post_ids = set(p['id'] for p in mastodon_client.trending_statuses()) if exclude_trending else set()
+    trending_post_ids = (
+        set(p["id"] for p in mastodon_client.trending_statuses()) if exclude_trending else set()
+    )
 
     TIMELINE_LIMIT = 2000
     MIN_WORD_COUNT = 10
@@ -45,8 +48,11 @@ def fetch_posts_and_boosts(
     boosts = []
     seen_post_urls = set()
     total_posts_seen = 0
-    filter_by_lang = \
-      (lambda p: p['language'] is None or p['language'] in languages) if len(languages) > 0 else (lambda p: True)
+    filter_by_lang = (
+        (lambda p: p["language"] is None or p["language"] in languages)
+        if len(languages) > 0
+        else (lambda p: True)
+    )
 
     # Iterate over our home timeline until we run out of posts or we hit the limit
     response = mastodon_client.timeline(min_id=start, limit=40)
@@ -64,7 +70,7 @@ def fetch_posts_and_boosts(
                 post = post["reblog"]  # look at the bosted post
                 boost = True
 
-            if post['created_at'] < min_post_created_at:
+            if post["created_at"] < min_post_created_at:
                 print(f"Excluded old post {post['url']}")
                 continue
 
@@ -76,26 +82,35 @@ def fetch_posts_and_boosts(
                 continue
 
             if not filter_by_lang(post):
-              continue
+                continue
 
-            soup = BeautifulSoup(post['content'], 'html.parser')
-            words = [word for word in soup.text.split() if not (word.startswith('#') or word.startswith('@') or word.startswith('http'))]
+            soup = BeautifulSoup(post["content"], "html.parser")
+            words = [
+                word
+                for word in soup.text.split()
+                if not (word.startswith("#") or word.startswith("@") or word.startswith("http"))
+            ]
             if len(words) == 0:
-              continue
+                continue
 
             if (
                 len(words) <= MIN_WORD_COUNT
                 and len(post.media_attachments) == 0
                 and post.poll is None
-                and len(soup.find_all(lambda tag: tag.name == 'a' and 'mention' not in tag.attrs.get('class',[]))) == 0
-               ):
-               print(f"Excluded short post {post['url']}")
-               continue
+                and len(
+                    soup.find_all(
+                        lambda tag: tag.name == "a" and "mention" not in tag.attrs.get("class", [])
+                    )
+                )
+                == 0
+            ):
+                print(f"Excluded short post {post['url']}")
+                continue
 
-            for mention in soup.find_all('a', class_ = "mention"):
-                mention.attrs['href'] = "https://main.elk.zone/" + mention.attrs['href']
+            for mention in soup.find_all("a", class_="mention"):
+                mention.attrs["href"] = "https://main.elk.zone/" + mention.attrs["href"]
 
-            post['content'] = str(soup)
+            post["content"] = str(soup)
             scored_post = ScoredPost(post)  # wrap the post data as a ScoredPost
 
             if scored_post.url not in seen_post_urls:
@@ -122,22 +137,27 @@ def fetch_posts_and_boosts(
 
     total_count = len(posts) + len(boosts)
     for i, post in enumerate(itertools.chain(posts, boosts)):
-        soup = BeautifulSoup(post.data['content'], 'html.parser')
-        non_mention_links = soup.find_all(lambda tag: tag.name == 'a' and 'mention' not in tag.attrs.get('class',[]))
+        soup = BeautifulSoup(post.data["content"], "html.parser")
+        non_mention_links = soup.find_all(
+            lambda tag: tag.name == "a" and "mention" not in tag.attrs.get("class", [])
+        )
         for link in non_mention_links:
-            if 'href' in link.attrs and any(link.attrs['href'].find(domain) != -1 for domain in known_instance_domains):
-                 link.attrs['href'] = "https://main.elk.zone/" + link.attrs['href']
+            if "href" in link.attrs and any(
+                link.attrs["href"].find(domain) != -1 for domain in known_instance_domains
+            ):
+                link.attrs["href"] = "https://main.elk.zone/" + link.attrs["href"]
 
-        post.data['content'] = str(soup)
+        post.data["content"] = str(soup)
         print(f"[{i+1}/{total_count}] Fetching metrics for {post.url}")
         post.fetch_metrics()
 
     return posts, boosts
 
-def fetch_boosted_accounts(mastodon_client: Mastodon, boosted_lists: set[int]) -> set[str]:
-  boosted_accounts = []
-  for id in boosted_lists:
-    accounts = mastodon_client.list_accounts(id, limit="0")
-    boosted_accounts.extend(account['acct'] for account in accounts)
 
-  return boosted_accounts
+def fetch_boosted_accounts(mastodon_client: Mastodon, boosted_lists: set[int]) -> set[str]:
+    boosted_accounts = []
+    for id in boosted_lists:
+        accounts = mastodon_client.list_accounts(id, limit="0")
+        boosted_accounts.extend(account["acct"] for account in accounts)
+
+    return boosted_accounts
