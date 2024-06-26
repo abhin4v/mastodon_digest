@@ -1,4 +1,5 @@
 from bs4 import BeautifulSoup
+from config import Config
 from datetime import datetime, timedelta, timezone
 from mastodon import Mastodon
 from models import ScoredPost
@@ -8,30 +9,26 @@ import requests
 
 
 def fetch_posts_and_boosts(
-    hours: int,
-    max_post_age_hours: int,
     mastodon_client: Mastodon,
-    languages: set[str],
-    exclude_trending: bool,
+    config: Config,
 ) -> tuple[list[ScoredPost], list[ScoredPost]]:
     """Fetches posts form the home timeline that the account hasn't interacted with"""
     mastodon_user = mastodon_client.me()
     print(f"Fetching data for {mastodon_user['username']}")
 
     trending_post_ids = (
-        set(p["id"] for p in mastodon_client.trending_statuses()) if exclude_trending else set()
+        set(p["id"] for p in mastodon_client.trending_statuses())
+        if config.timeline_exclude_trending
+        else set()
     )
-
-    TIMELINE_LIMIT = 2000
-    MIN_WORD_COUNT = 10
 
     # First, get our filters
     filters = mastodon_client.filters()
 
     # Set our start query
-    start = datetime.now(timezone.utc) - timedelta(hours=hours)
+    start = datetime.now(timezone.utc) - timedelta(hours=config.timeline_hours_limit)
 
-    min_post_created_at = datetime.now(timezone.utc) - timedelta(hours=max_post_age_hours)
+    min_post_created_at = datetime.now(timezone.utc) - timedelta(hours=config.post_max_age_hours)
 
     known_instance_domains = set()
     with requests.get("https://nodes.fediverse.party/nodes.json") as resp:
@@ -45,13 +42,13 @@ def fetch_posts_and_boosts(
     total_posts_seen = 0
 
     def filter_by_lang(post: dict) -> bool:
-        if len(languages) > 0:
-            return post["language"] is None or post["language"] in languages
+        if len(config.post_languages) > 0:
+            return post["language"] is None or post["language"] in config.post_languages
         return True
 
     # Iterate over our home timeline until we run out of posts or we hit the limit
     response: Optional[list[dict]] = mastodon_client.timeline(min_id=start, limit=40)
-    while response and total_posts_seen < TIMELINE_LIMIT:
+    while response and total_posts_seen < config.timeline_posts_limit:
         print("Fetching timeline posts")
         # Apply our server-side filters
         filtered_response: list[dict] = response
@@ -61,7 +58,7 @@ def fetch_posts_and_boosts(
         for post in filtered_response:
             boost = False
             if post["reblog"] is not None:
-                post = post["reblog"]  # look at the bosted post
+                post = post["reblog"]  # look at the boosted post
                 boost = True
 
             if post["created_at"] < min_post_created_at:
@@ -71,7 +68,7 @@ def fetch_posts_and_boosts(
             if post["visibility"] != "public" and post["visibility"] != "unlisted":
                 continue
 
-            if exclude_trending and post["id"] in trending_post_ids:
+            if config.timeline_exclude_trending and post["id"] in trending_post_ids:
                 print(f"Excluded trending post {post['url']}")
                 continue
 
@@ -88,7 +85,7 @@ def fetch_posts_and_boosts(
                 continue
 
             if (
-                len(words) <= MIN_WORD_COUNT
+                len(words) <= config.post_min_word_count
                 and len(post["media_attachments"]) == 0
                 and post["poll"] is None
                 and len(

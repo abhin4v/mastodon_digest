@@ -1,0 +1,32 @@
+[timeline]
+posts_limit = 2000
+hours_limit = 24
+exclude_trending = true
+max_user_post_count = 3
+
+[post]
+min_word_count = 10
+max_age_hours = 36
+languages = [ "en", "hi" ]
+
+[scoring]
+tag_boost = 1.2
+account_boost = 1.2
+halflife_hours = 6
+
+[digest]
+explore_frac = 0.2
+threshold = "lax"
+boosted_tags = [
+  "Haskell",
+  "compilers",
+  "ProgrammingLanguages",
+  "NixOS",
+  "PLT",
+  "lisp",
+  "FunctionalProgramming",
+  "QuantifiedSelf",
+  "SelfHosting",
+  "running",
+]
+boosted_list_ids = [1, 6, 12]

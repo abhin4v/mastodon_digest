@@ -1,4 +1,5 @@
 from collections import defaultdict
+from config import Config
 from enum import Enum
 from itertools import chain
 from models import ScoredPost
@@ -18,21 +19,19 @@ class Threshold(Enum):
     def posts_meeting_criteria(
         self,
         posts: list[ScoredPost],
-        boosted_tags: set[str],
         boosted_accounts: set[str],
-        halflife_hours: int,
+        config: Config,
         non_threshold_post_frac: float,
-        max_user_post_count: int,
         scorer: Scorer,
     ) -> list[ScoredPost]:
         """Returns a list of ScoredPosts that meet this Threshold with the given Scorer"""
 
         for p in posts:
-            p.calc_score(boosted_tags, boosted_accounts, halflife_hours, scorer)
+            p.calc_score(boosted_accounts, config, scorer)
 
         threads = self.group_posts_into_threads(posts)
         posts = self.choose_highest_scored_thread_posts(posts, threads)
-        posts = self.choose_highest_scored_user_posts(posts, max_user_post_count)
+        posts = self.choose_highest_scored_user_posts(posts, config.timeline_max_user_post_count)
 
         all_post_scores = [p.score for p in posts]
         threshold_posts = []

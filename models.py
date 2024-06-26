@@ -1,11 +1,9 @@
+from config import Config
 from datetime import datetime, timedelta, timezone
-from typing import Any, ClassVar
 from mastodon import Mastodon
 from scorers import Scorer
+from typing import Any, ClassVar
 from urllib.parse import urlparse
-
-TAG_BOOST = 1.2
-ACCOUNT_BOOST = 1.2
 
 
 class ScoredPost:
@@ -42,23 +40,22 @@ class ScoredPost:
 
     def calc_score(
         self,
-        boosted_tags: set[str],
         boosted_accounts: set[str],
-        halflife_hours: int,
+        config: Config,
         scorer: Scorer,
     ) -> None:
         self.score = scorer.score(self._data)
         tags = [tag.name.lower() for tag in self.tags]
         if self.score > 0:
-            if any((t in boosted_tags) for t in tags):
-                self.score = TAG_BOOST * self.score
-            if halflife_hours > 0:
+            if any((t in config.digest_boosted_tags) for t in tags):
+                self.score = config.scoring_tag_boost * self.score
+            if config.scoring_halflife_hours > 0:
                 self.score = self.score * (
                     0.5
                     ** (
                         (datetime.now(timezone.utc) - self.created_at)
-                        / timedelta(hours=halflife_hours)
+                        / timedelta(hours=config.scoring_halflife_hours)
                     )
                 )
             if self.account["acct"] in boosted_accounts:
-                self.score = ACCOUNT_BOOST * self.score
+                self.score = config.scoring_account_boost * self.score
