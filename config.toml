@@ -16,7 +16,7 @@ halflife_hours = 6
 
 [digest]
 explore_frac = 0.2
-threshold = "lax"
+threshold = 80
 boosted_tags = [
   "Haskell",
   "compilers",

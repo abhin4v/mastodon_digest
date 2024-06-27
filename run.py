@@ -5,9 +5,7 @@ from formatters import format_posts
 from jinja2 import Environment, FileSystemLoader
 from mastodon import Mastodon
 from pathlib import Path
-from scorers import ExtendedSimpleWeightedScorer
-from scorers import Scorer
-from thresholds import get_threshold_from_name, get_thresholds
+from scorers import ExtendedSimpleWeightedScorer, Scorer
 from thresholds import Threshold
 import argparse
 import os
@@ -27,7 +25,6 @@ def render_digest(context: dict, output_dir: Path) -> None:
 def run(
     config: Config,
     scorer: Scorer,
-    threshold: Threshold,
     mastodon_token: str,
     mastodon_base_url: str,
     output_dir: str,
@@ -50,6 +47,7 @@ def run(
     posts, boosts = fetch_posts_and_boosts(mastodon_client, config)
 
     # 2. Score them, and return those that meet our threshold
+    threshold = Threshold(config.digest_threshold)
     threshold_posts = format_posts(
         threshold.posts_meeting_criteria(
             posts,
@@ -79,8 +77,7 @@ def run(
             "boosts": threshold_boosts,
             "mastodon_base_url": mastodon_base_url,
             "rendered_at": datetime.utcnow().isoformat() + "Z",
-            # "rendered_at": datetime.utcnow().strftime('%B %d, %Y at %H:%M:%S UTC'),
-            "threshold": threshold.get_name(),
+            "threshold": config.digest_threshold,
             "scorer": scorer.get_name(),
         },
         output_dir=output_dir,
@@ -88,8 +85,6 @@ def run(
 
 
 if __name__ == "__main__":
-    thresholds = get_thresholds()
-
     arg_parser = argparse.ArgumentParser(
         prog="mastodon_digest",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -125,7 +120,6 @@ if __name__ == "__main__":
     run(
         config,
         ExtendedSimpleWeightedScorer(),
-        get_threshold_from_name(config.digest_threshold),
         mastodon_token,
         mastodon_base_url,
         output_dir

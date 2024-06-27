@@ -8,13 +8,9 @@ from scorers import Scorer
 import numpy as np
 
 
-class Threshold(Enum):
-    LAX = 90
-    NORMAL = 95
-    STRICT = 98
-
-    def get_name(self) -> str:
-        return self.name.lower()
+class Threshold:
+    def __init__(self, value: float) -> None:
+        self.value = value
 
     def posts_meeting_criteria(
         self,
@@ -126,15 +122,3 @@ class Threshold(Enum):
             ]
 
         return list(chain.from_iterable(posts_by_user.values()))
-
-
-def get_thresholds() -> dict[str, int]:
-    """Returns a dictionary mapping lowercase threshold names to values"""
-
-    return {t.get_name(): t.value for t in Threshold}
-
-
-def get_threshold_from_name(name: str) -> Threshold:
-    """Returns Threshold for a given named string"""
-
-    return Threshold[name.upper()]

@@ -90,7 +90,7 @@ class Config:
     digest_explore_frac: FloatDescriptor = FloatDescriptor(
         default=0.0, min_value=0.0, max_value=0.5
     )
-    digest_threshold: TypedDescriptor = TypedDescriptor(default="normal", type_=str)
+    digest_threshold: IntDescriptor = IntDescriptor(default=90, min_value=0, max_value=99)
     digest_boosted_tags: SetDescriptor = SetDescriptor(subtype=str)
     digest_boosted_list_ids: SetDescriptor = SetDescriptor(subtype=int)
 
