@@ -32,8 +32,10 @@ class Threshold:
         all_post_scores = [p.score for p in posts]
         threshold_posts = []
         non_threshold_posts = []
+        min_score = stats.scoreatpercentile(all_post_scores, per=self.value)
+
         for p in posts:
-            if stats.percentileofscore(all_post_scores, p.score) >= self.value:
+            if p.score >= min_score:
                 threshold_posts.append(p)
             else:
                 non_threshold_posts.append(p)

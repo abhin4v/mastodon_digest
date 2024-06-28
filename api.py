@@ -41,86 +41,101 @@ def fetch_posts_and_boosts(
     seen_post_urls: set[str] = set()
     total_posts_seen = 0
 
-    def filter_by_lang(post: dict) -> bool:
+    def is_short_post(post: dict, soup: BeautifulSoup) -> bool:
+        words = [
+            word
+            for word in soup.text.split()
+            if not (word.startswith("#") or word.startswith("@") or word.startswith("http"))
+        ]
+
+        return (len(words) == 0) or (
+            len(words) <= config.post_min_word_count
+            and len(post.media_attachments) == 0
+            and post.poll is None
+            and len(
+                soup.find_all(
+                    lambda tag: tag.name == "a" and "mention" not in tag.attrs.get("class", [])
+                )
+            )
+            == 0
+        )
+
+    def is_valid_lang_post(post: dict) -> bool:
         if len(config.post_languages) > 0:
             return post.language is None or post.language in config.post_languages
         return True
 
-    # Iterate over our home timeline until we run out of posts or we hit the limit
-    response: Optional[list[dict]] = mastodon_client.timeline(min_id=start, limit=40)
-    while response and total_posts_seen < config.timeline_posts_limit:
-        print("Fetching timeline posts")
-        # Apply our server-side filters
-        filtered_response: list[dict] = response
-        if filters:
-            filtered_response = mastodon_client.filters_apply(response, filters, "home")
-
-        for post in filtered_response:
+    def filter_posts(posts: list[dict]) -> tuple[list[dict], set[str]]:
+        filtered_posts = []
+        boost_posts_urls = set()
+        for post in posts:
             boost = False
             if post.reblog is not None:
                 post = post.reblog  # look at the boosted post
                 boost = True
 
-            if post.created_at < min_post_created_at:
-                print(f"Excluded old post {post.url}")
+            if post.url in seen_post_urls:
+                print(f"Excluded seen post {post.url}")
                 continue
 
-            if post.visibility != "public" and post.visibility != "unlisted":
+            if post.visibility == "direct":
+                print(f"Excluded direct post {post.url}")
+                continue
+
+            if (
+                post.reblogged
+                or post.favourited
+                or post.bookmarked
+                or post.account.id == mastodon_user.id
+                or post.in_reply_to_account_id == mastodon_user.id
+            ):
+                print(f"Excluded interacted post {post.url}")
+                continue
+
+            if post.created_at < min_post_created_at:
+                print(f"Excluded old post {post.url}")
                 continue
 
             if config.timeline_exclude_trending and post.id in trending_post_ids:
                 print(f"Excluded trending post {post.url}")
                 continue
 
-            if not filter_by_lang(post):
+            if not is_valid_lang_post(post):
+                print(f"Excluded foreign language post {post.url}")
                 continue
 
             soup = BeautifulSoup(post.content, "html.parser")
-            words = [
-                word
-                for word in soup.text.split()
-                if not (word.startswith("#") or word.startswith("@") or word.startswith("http"))
-            ]
-            if len(words) == 0:
-                continue
-
-            if (
-                len(words) <= config.post_min_word_count
-                and len(post.media_attachments) == 0
-                and post.poll is None
-                and len(
-                    soup.find_all(
-                        lambda tag: tag.name == "a" and "mention" not in tag.attrs.get("class", [])
-                    )
-                )
-                == 0
-            ):
+            if is_short_post(post, soup):
                 print(f"Excluded short post {post.url}")
                 continue
 
-            for mention in soup.find_all("a", class_="mention"):
-                mention.attrs["href"] = "https://main.elk.zone/" + mention.attrs["href"]
+            filtered_posts.append(post)
+            if boost:
+                boost_posts_urls.add(post.url)
 
-            post["content"] = str(soup)
+        return (filtered_posts, boost_posts_urls)
+
+    # Iterate over our home timeline until we run out of posts or we hit the limit
+    response: Optional[list[dict]] = mastodon_client.timeline(min_id=start, limit=40)
+    while response and total_posts_seen < config.timeline_posts_limit:
+        print("Fetched timeline posts")
+        resp_posts, boost_posts_urls = filter_posts(response)
+        post_count = len(resp_posts)
+
+        # Apply our server-side filters
+        if filters:
+            resp_posts = mastodon_client.filters_apply(resp_posts, filters, "home")
+        print(f"Excluded {post_count - len(resp_posts)} posts matching user's filters")
+
+        for post in resp_posts:
             scored_post = ScoredPost(post)  # wrap the post data as a ScoredPost
-
-            if scored_post.url not in seen_post_urls:
-                # Apply our local filters
-                # Basically ignore my posts or posts I've interacted with
-                if (
-                    not scored_post.reblogged
-                    and not scored_post.favourited
-                    and not scored_post.bookmarked
-                    and scored_post.account.id != mastodon_user.id
-                    and scored_post.in_reply_to_account_id != mastodon_user.id
-                ):
-                    total_posts_seen += 1
-                    # Append to either the boosts list or the posts lists
-                    if boost:
-                        boosts.append(scored_post)
-                    else:
-                        posts.append(scored_post)
-                    seen_post_urls.add(scored_post.url)
+            total_posts_seen += 1
+            # Append to either the boosts list or the posts lists
+            if post.url in boost_posts_urls:
+                boosts.append(scored_post)
+            else:
+                posts.append(scored_post)
+            seen_post_urls.add(scored_post.url)
 
         # fetch the previous (because of reverse chron) page of results
         response = mastodon_client.fetch_previous(response)
@@ -128,6 +143,10 @@ def fetch_posts_and_boosts(
     total_count = len(posts) + len(boosts)
     for i, scored_post in enumerate(itertools.chain(posts, boosts)):
         soup = BeautifulSoup(scored_post.content, "html.parser")
+
+        for mention in soup.find_all("a", class_="mention"):
+            mention.attrs["href"] = "https://main.elk.zone/" + mention.attrs["href"]
+
         non_mention_links = soup.find_all(
             lambda tag: tag.name == "a" and "mention" not in tag.attrs.get("class", [])
         )
