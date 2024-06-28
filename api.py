@@ -56,11 +56,13 @@ def fetch_posts_and_boosts(
 
     min_post_created_at = datetime.now(timezone.utc) - timedelta(hours=config.post_max_age_hours)
     seen_post_urls: set[str] = set()
+    contents = set()
 
     direct_post_count = 0
     interacted_post_count = 0
     old_post_count = 0
     trending_post_count = 0
+    duplicate_post_count = 0
     foreign_language_post_count = 0
     filtered_post_count = 0
     short_post_count = 0
@@ -70,6 +72,7 @@ def fetch_posts_and_boosts(
         nonlocal interacted_post_count
         nonlocal old_post_count
         nonlocal trending_post_count
+        nonlocal duplicate_post_count
         nonlocal foreign_language_post_count
         nonlocal short_post_count
 
@@ -109,6 +112,11 @@ def fetch_posts_and_boosts(
             if config.timeline_exclude_trending and post.id in trending_post_ids:
                 #print(f"Excluded trending post {post.url}")
                 trending_post_count += 1
+                continue
+
+            if post.content in contents:
+                #print(f"Excluded duplicate post {post.url}")
+                duplicate_post_count += 1
                 continue
 
             if not is_valid_lang_post(post):
@@ -165,6 +173,7 @@ def fetch_posts_and_boosts(
     interacted_post_count = {interacted_post_count}
     old_post_count = {old_post_count}
     trending_post_count = {trending_post_count}
+    duplicate_post_count = {duplicate_post_count}
     foreign_language_post_count = {foreign_language_post_count}
     short_post_count = {short_post_count}
     filtered_post_count = {filtered_post_count}""")
