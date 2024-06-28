@@ -23,11 +23,11 @@ class InverseFollowerWeight(Weight):
     @classmethod
     def weight(cls, post: dict) -> float:
         # Zero out posts by accounts with zero followers that somehow made it to my feed
-        if post["account"]["followers_count"] == 0:
+        if post.account.followers_count == 0:
             weight = 0.0
         else:
             # inversely weight against how big the account is
-            weight = 1 / sqrt(post["account"]["followers_count"])
+            weight = 1 / sqrt(post.account.followers_count)
 
         return weight
 
@@ -46,14 +46,14 @@ class Scorer(ABC):
 class SimpleScorer(UniformWeight, Scorer):
     @classmethod
     def score(cls, post: dict) -> float:
-        if post["reblogs_count"] or post["favourites_count"]:
+        if post.reblogs_count or post.favourites_count:
             # If there's at least one metric
             # We don't want zeros in other metrics to multiply that out
             # Inflate every value by 1
             metric_average: float = stats.gmean(
                 [
-                    2 * post["reblogs_count"] + 1,
-                    post["favourites_count"] + 1,
+                    2 * post.reblogs_count + 1,
+                    post.favourites_count + 1,
                 ]
             )
         else:
@@ -70,15 +70,15 @@ class SimpleWeightedScorer(InverseFollowerWeight, SimpleScorer):
 class ExtendedSimpleScorer(UniformWeight, Scorer):
     @classmethod
     def score(cls, post: dict) -> float:
-        if post["reblogs_count"] or post["favourites_count"] or post["replies_count"]:
+        if post.reblogs_count or post.favourites_count or post.replies_count:
             # If there's at least one metric
             # We don't want zeros in other metrics to multiply that out
             # Inflate every value by 1
             metric_average: float = stats.gmean(
                 [
-                    4 * post["replies_count"] + 1,
-                    2 * post["reblogs_count"] + 1,
-                    post["favourites_count"] + 1,
+                    4 * post.replies_count + 1,
+                    2 * post.reblogs_count + 1,
+                    post.favourites_count + 1,
                 ],
             )
         else:

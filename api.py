@@ -14,10 +14,10 @@ def fetch_posts_and_boosts(
 ) -> tuple[list[ScoredPost], list[ScoredPost]]:
     """Fetches posts form the home timeline that the account hasn't interacted with"""
     mastodon_user = mastodon_client.me()
-    print(f"Fetching data for {mastodon_user['username']}")
+    print(f"Fetching data for {mastodon_user.username}")
 
     trending_post_ids = (
-        set(p["id"] for p in mastodon_client.trending_statuses())
+        set(p.id for p in mastodon_client.trending_statuses())
         if config.timeline_exclude_trending
         else set()
     )
@@ -43,7 +43,7 @@ def fetch_posts_and_boosts(
 
     def filter_by_lang(post: dict) -> bool:
         if len(config.post_languages) > 0:
-            return post["language"] is None or post["language"] in config.post_languages
+            return post.language is None or post.language in config.post_languages
         return True
 
     # Iterate over our home timeline until we run out of posts or we hit the limit
@@ -57,25 +57,25 @@ def fetch_posts_and_boosts(
 
         for post in filtered_response:
             boost = False
-            if post["reblog"] is not None:
-                post = post["reblog"]  # look at the boosted post
+            if post.reblog is not None:
+                post = post.reblog  # look at the boosted post
                 boost = True
 
-            if post["created_at"] < min_post_created_at:
-                print(f"Excluded old post {post['url']}")
+            if post.created_at < min_post_created_at:
+                print(f"Excluded old post {post.url}")
                 continue
 
-            if post["visibility"] != "public" and post["visibility"] != "unlisted":
+            if post.visibility != "public" and post.visibility != "unlisted":
                 continue
 
-            if config.timeline_exclude_trending and post["id"] in trending_post_ids:
-                print(f"Excluded trending post {post['url']}")
+            if config.timeline_exclude_trending and post.id in trending_post_ids:
+                print(f"Excluded trending post {post.url}")
                 continue
 
             if not filter_by_lang(post):
                 continue
 
-            soup = BeautifulSoup(post["content"], "html.parser")
+            soup = BeautifulSoup(post.content, "html.parser")
             words = [
                 word
                 for word in soup.text.split()
@@ -86,8 +86,8 @@ def fetch_posts_and_boosts(
 
             if (
                 len(words) <= config.post_min_word_count
-                and len(post["media_attachments"]) == 0
-                and post["poll"] is None
+                and len(post.media_attachments) == 0
+                and post.poll is None
                 and len(
                     soup.find_all(
                         lambda tag: tag.name == "a" and "mention" not in tag.attrs.get("class", [])
@@ -95,7 +95,7 @@ def fetch_posts_and_boosts(
                 )
                 == 0
             ):
-                print(f"Excluded short post {post['url']}")
+                print(f"Excluded short post {post.url}")
                 continue
 
             for mention in soup.find_all("a", class_="mention"):
@@ -111,8 +111,8 @@ def fetch_posts_and_boosts(
                     not scored_post.reblogged
                     and not scored_post.favourited
                     and not scored_post.bookmarked
-                    and scored_post.account["id"] != mastodon_user["id"]
-                    and scored_post.in_reply_to_account_id != mastodon_user["id"]
+                    and scored_post.account.id != mastodon_user.id
+                    and scored_post.in_reply_to_account_id != mastodon_user.id
                 ):
                     total_posts_seen += 1
                     # Append to either the boosts list or the posts lists
@@ -148,6 +148,6 @@ def fetch_boosted_accounts(mastodon_client: Mastodon, boosted_lists: set[int]) -
     boosted_accounts: list[str] = []
     for id in boosted_lists:
         accounts = mastodon_client.list_accounts(id, limit="0")
-        boosted_accounts.extend(account["acct"] for account in accounts)
+        boosted_accounts.extend(account.acct for account in accounts)
 
     return set(boosted_accounts)

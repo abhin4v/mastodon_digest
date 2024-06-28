@@ -114,7 +114,7 @@ class Threshold:
     ) -> list[ScoredPost]:
         posts_by_user = defaultdict(list)
         for post in posts:
-            posts_by_user[post.account["acct"]].append(post)
+            posts_by_user[post.account.acct].append(post)
 
         for acct, user_posts in posts_by_user.items():
             posts_by_user[acct] = sorted(user_posts, key=lambda p: p.score, reverse=True)[

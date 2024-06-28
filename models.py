@@ -29,9 +29,9 @@ class ScoredPost:
                 m = Mastodon(api_base_url=api_base_url, request_timeout=30)
                 ScoredPost.mastodon_client_cache[api_base_url] = m
             status = m.status(url_parts.path.split("/")[-1])
-            self._data["replies_count"] = status["replies_count"]
-            self._data["reblogs_count"] = status["reblogs_count"]
-            self._data["favourites_count"] = status["favourites_count"]
+            self._data["replies_count"] = status.replies_count
+            self._data["reblogs_count"] = status.reblogs_count
+            self._data["favourites_count"] = status.favourites_count
         except Exception as e:
             print("An error occurred while enriching post: {0} {1}".format(self.url, e))
 
@@ -57,5 +57,5 @@ class ScoredPost:
                         / timedelta(hours=config.scoring_halflife_hours)
                     )
                 )
-            if self.account["acct"] in boosted_accounts:
+            if self.account.acct in boosted_accounts:
                 self.score = config.scoring_account_boost * self.score
