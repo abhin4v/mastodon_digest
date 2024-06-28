@@ -20,15 +20,18 @@ class ScoredPost:
         self._data["content"] = content
 
     def fetch_metrics(self) -> None:
+        if self.visibility == "private":
+            return
+
         try:
             url_parts = urlparse(self.url)
             api_base_url = f"{url_parts.scheme}://{url_parts.netloc}"
             if api_base_url in ScoredPost.mastodon_client_cache:
-                m = ScoredPost.mastodon_client_cache[api_base_url]
+                mastodon_client = ScoredPost.mastodon_client_cache[api_base_url]
             else:
-                m = Mastodon(api_base_url=api_base_url, request_timeout=30)
-                ScoredPost.mastodon_client_cache[api_base_url] = m
-            status = m.status(url_parts.path.split("/")[-1])
+                mastodon_client = Mastodon(api_base_url=api_base_url, request_timeout=30)
+                ScoredPost.mastodon_client_cache[api_base_url] = mastodon_client
+            status = mastodon_client.status(url_parts.path.split("/")[-1])
             self._data["replies_count"] = status.replies_count
             self._data["reblogs_count"] = status.reblogs_count
             self._data["favourites_count"] = status.favourites_count
