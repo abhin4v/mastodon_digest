@@ -1,10 +1,27 @@
+from bs4 import BeautifulSoup
+from models import ScoredPost
 import html
 
-from models import ScoredPost
+
+def fix_post_links(post: ScoredPost, known_instance_domains: set[str]) -> str:
+    soup = BeautifulSoup(post.content, "html.parser")
+
+    for mention in soup.find_all("a", class_="mention"):
+        mention.attrs["href"] = "https://main.elk.zone/" + mention.attrs["href"]
+
+    non_mention_links = soup.find_all(
+        lambda tag: tag.name == "a" and "mention" not in tag.attrs.get("class", [])
+    )
+    for link in non_mention_links:
+        if "href" in link.attrs and any(
+            link.attrs["href"].find(domain) != -1 for domain in known_instance_domains
+        ):
+            link.attrs["href"] = "https://main.elk.zone/" + link.attrs["href"]
+
+    return str(soup)
 
 
-def format_post(post: ScoredPost, mastodon_base_url: str) -> dict:
-
+def format_post(post: ScoredPost, mastodon_base_url: str, known_instance_domains: set[str]) -> dict:
     def format_media(media: dict, media_count: int) -> str:
         url = media.url
         description = html.escape(media.description) if media.description != None else ""
@@ -33,7 +50,7 @@ def format_post(post: ScoredPost, mastodon_base_url: str) -> dict:
     account_url = "https://main.elk.zone/" + post.account.url
     display_name = format_displayname(post.account.display_name, post.account.emojis)
     username = post.account.username
-    content = post.content
+    content = fix_post_links(post, known_instance_domains)
     media = "\n".join(
         [format_media(media, len(post.media_attachments)) for media in post.media_attachments]
     )
@@ -66,5 +83,7 @@ def format_post(post: ScoredPost, mastodon_base_url: str) -> dict:
     )
 
 
-def format_posts(posts: list[ScoredPost], mastodon_base_url: str) -> list[dict]:
-    return [format_post(post, mastodon_base_url) for post in posts]
+def format_posts(
+    posts: list[ScoredPost], mastodon_base_url: str, known_instance_domains: set[str]
+) -> list[dict]:
+    return [format_post(post, mastodon_base_url, known_instance_domains) for post in posts]

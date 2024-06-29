@@ -1,4 +1,4 @@
-from api import fetch_posts_and_boosts, fetch_boosted_accounts
+from api import fetch_posts_and_boosts, fetch_boosted_accounts, get_known_instance_domains
 from config import Config, read_config
 from datetime import datetime
 from formatters import format_posts
@@ -45,6 +45,7 @@ def run(
 
     # 1. Fetch all the posts and boosts from our home timeline that we haven't interacted with
     posts, boosts = fetch_posts_and_boosts(mastodon_client, config)
+    known_instance_domains = get_known_instance_domains()
 
     # 2. Score them, and return those that meet our threshold
     threshold = Threshold(config.digest_threshold)
@@ -57,6 +58,7 @@ def run(
             scorer,
         ),
         mastodon_base_url,
+        known_instance_domains
     )
     threshold_boosts = format_posts(
         threshold.posts_meeting_criteria(
@@ -67,6 +69,7 @@ def run(
             scorer,
         ),
         mastodon_base_url,
+        known_instance_domains
     )
 
     # 3. Build the digest
