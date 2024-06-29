@@ -2,6 +2,7 @@
 posts_limit = 2000
 hours_limit = 24
 exclude_trending = true
+exclude_previously_digested_posts = true
 max_user_post_count = 3
 
 [post]

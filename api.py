@@ -11,6 +11,7 @@ import requests
 class PostFilterator:
     def __init__(
         self,
+        digested_post_urls: set[str],
         mastodon_client: Mastodon,
         config: Config,
     ) -> None:
@@ -29,6 +30,7 @@ class PostFilterator:
         self._mastodon_user = mastodon_client.me()
         self._server_filters = mastodon_client.filters()
         self._trending_post_ids = self._get_trending_post_ids()
+        self._digested_post_urls = digested_post_urls
         self._min_post_created_at = datetime.now(timezone.utc) - timedelta(
             hours=config.post_max_age_hours
         )
@@ -90,6 +92,14 @@ class PostFilterator:
                 # print(f"Excluded seen post {post.url}")
                 continue
 
+            if (
+                self._config.timeline_exclude_previously_digested_posts
+                and post.url in self._digested_post_urls
+            ):
+                # print(f"Excluded seen post {post.url}")
+                self._digested_post_count += 1
+                continue
+
             if post.visibility == "direct":
                 # print(f"Excluded direct post {post.url}")
                 self._direct_post_count += 1
@@ -146,6 +156,7 @@ class PostFilterator:
     direct_post_count = {self._direct_post_count}
     interacted_post_count = {self._interacted_post_count}
     old_post_count = {self._old_post_count}
+    digested_post_count = {self._digested_post_count}
     trending_post_count = {self._trending_post_count}
     duplicate_post_count = {self._duplicate_post_count}
     foreign_language_post_count = {self._foreign_language_post_count}
@@ -155,14 +166,14 @@ class PostFilterator:
 
 
 def fetch_posts_and_boosts(
-    mastodon_client: Mastodon, config: Config
+    digested_post_urls: set[str], mastodon_client: Mastodon, config: Config
 ) -> tuple[list[ScoredPost], list[ScoredPost]]:
     """Fetches posts form the home timeline that the account hasn't interacted with"""
     start = datetime.now(timezone.utc) - timedelta(hours=config.timeline_hours_limit)
     posts: list[ScoredPost] = []
     boosts: list[ScoredPost] = []
     total_posts_seen = 0
-    filterator = PostFilterator(mastodon_client, config)
+    filterator = PostFilterator(digested_post_urls, mastodon_client, config)
 
     # Iterate over our home timeline until we run out of posts or we hit the limit
     response: Optional[list[dict]] = mastodon_client.timeline(min_id=start, limit=40)

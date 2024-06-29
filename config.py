@@ -78,6 +78,9 @@ class Config:
     )
     timeline_hours_limit: IntDescriptor = IntDescriptor(default=24, min_value=1, max_value=24)
     timeline_exclude_trending: TypedDescriptor = TypedDescriptor(default=False, type_=bool)
+    timeline_exclude_previously_digested_posts: TypedDescriptor = TypedDescriptor(
+        default=False, type_=bool
+    )
     timeline_max_user_post_count: IntDescriptor = IntDescriptor(
         default=3, min_value=1, max_value=math.inf
     )
@@ -93,6 +96,9 @@ class Config:
     digest_threshold: IntDescriptor = IntDescriptor(default=90, min_value=0, max_value=99)
     digest_boosted_tags: SetDescriptor = SetDescriptor(subtype=str)
     digest_boosted_list_ids: SetDescriptor = SetDescriptor(subtype=int)
+    digest_digested_posts_file: TypedDescriptor = TypedDescriptor(
+        default="digested_posts.json", type_=str
+    )
 
 
 def validate_config(config: dict) -> Config:
@@ -105,6 +111,7 @@ def validate_config(config: dict) -> Config:
         timeline_posts_limit=timeline["posts_limit"],
         timeline_hours_limit=timeline["hours_limit"],
         timeline_exclude_trending=timeline["exclude_trending"],
+        timeline_exclude_previously_digested_posts=timeline["exclude_previously_digested_posts"],
         timeline_max_user_post_count=timeline["max_user_post_count"],
         post_min_word_count=post["min_word_count"],
         post_max_age_hours=post["max_age_hours"],
@@ -116,6 +123,7 @@ def validate_config(config: dict) -> Config:
         digest_threshold=digest["threshold"],
         digest_boosted_tags=frozenset(t.lower() for t in digest.get("boosted_tags", [])),
         digest_boosted_list_ids=frozenset(digest.get("boosted_list_ids", [])),
+        digest_digested_posts_file=digest["digested_posts_file"],
     )
 
 

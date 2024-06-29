@@ -8,9 +8,14 @@ from pathlib import Path
 from scorers import ExtendedSimpleWeightedScorer, Scorer
 from thresholds import Threshold
 import argparse
+import itertools
+import json
+import os
 import os
 import pprint
+import shutil
 import sys
+import tempfile
 
 
 def render_digest(context: dict, output_dir: Path) -> None:
@@ -19,7 +24,46 @@ def render_digest(context: dict, output_dir: Path) -> None:
     output_html = template.render(context)
     output_file_path = output_dir / "index.html"
     output_file_path.write_text(output_html)
-    print("Rendered digest")
+    print(f"Rendered digest: {len(context['posts'])} posts and {len(context['boosts'])} boosts")
+
+
+def get_digested_posts(config: Config) -> list[str]:
+    digested_posts_file = config.digest_digested_posts_file
+
+    def createFile():
+        with open(digested_posts_file, "w") as f:
+            f.write("[]")
+            return []
+
+    if not os.path.isfile(digested_posts_file):
+        return createFile()
+
+    with open(digested_posts_file, "r") as f:
+        try:
+            post_urls = json.load(f)
+            assert type(post_urls) == list
+            return post_urls
+        except json.JSONDecodeError:
+            return createFile()
+
+
+def save_digested_posts(
+    digested_posts: list[str], posts: list[dict], boosts: list[dict], config: Config
+) -> None:
+    digested_posts.extend(post.url for post in itertools.chain(posts, boosts))
+    digested_posts_count = int(
+        config.timeline_posts_limit * config.post_max_age_hours / config.timeline_hours_limit
+    )
+    digested_posts = digested_posts[-digested_posts_count:]
+
+    with tempfile.NamedTemporaryFile(
+        "w", prefix="mastodon_digest_digested_posts", suffix=".json", delete=False
+    ) as f:
+        json.dump(digested_posts, f)
+        tempPath = f.name
+
+    shutil.move(tempPath, config.digest_digested_posts_file)
+    print(f"Saved {len(digested_posts)} digested post URLs")
 
 
 def run(
@@ -42,42 +86,38 @@ def run(
     non_threshold_posts_frac = config.digest_explore_frac / (1 - config.digest_explore_frac)
 
     boosted_accounts = fetch_boosted_accounts(mastodon_client, config.digest_boosted_list_ids)
+    digested_posts = get_digested_posts(config)
+    print(f"Read {len(digested_posts)} digested post URLs")
 
     # 1. Fetch all the posts and boosts from our home timeline that we haven't interacted with
-    posts, boosts = fetch_posts_and_boosts(mastodon_client, config)
+    posts, boosts = fetch_posts_and_boosts(set(digested_posts), mastodon_client, config)
     known_instance_domains = get_known_instance_domains()
 
     # 2. Score them, and return those that meet our threshold
     threshold = Threshold(config.digest_threshold)
-    threshold_posts = format_posts(
-        threshold.posts_meeting_criteria(
-            posts,
-            boosted_accounts,
-            config,
-            non_threshold_posts_frac,
-            scorer,
-        ),
-        mastodon_base_url,
-        known_instance_domains
+    threshold_posts = threshold.posts_meeting_criteria(
+        posts,
+        boosted_accounts,
+        config,
+        non_threshold_posts_frac,
+        scorer,
     )
-    threshold_boosts = format_posts(
-        threshold.posts_meeting_criteria(
-            boosts,
-            boosted_accounts,
-            config,
-            non_threshold_posts_frac,
-            scorer,
-        ),
-        mastodon_base_url,
-        known_instance_domains
+    threshold_boosts = threshold.posts_meeting_criteria(
+        boosts,
+        boosted_accounts,
+        config,
+        non_threshold_posts_frac,
+        scorer,
     )
+
+    save_digested_posts(digested_posts, threshold_posts, threshold_boosts, config)
 
     # 3. Build the digest
     render_digest(
         context={
             "hours": hours,
-            "posts": threshold_posts,
-            "boosts": threshold_boosts,
+            "posts": format_posts(threshold_posts, mastodon_base_url, known_instance_domains),
+            "boosts": format_posts(threshold_boosts, mastodon_base_url, known_instance_domains),
             "mastodon_base_url": mastodon_base_url,
             "rendered_at": datetime.utcnow().isoformat() + "Z",
             "threshold": config.digest_threshold,
@@ -120,10 +160,4 @@ if __name__ == "__main__":
     if not mastodon_base_url:
         sys.exit("Missing environment variable: MASTODON_BASE_URL")
 
-    run(
-        config,
-        ExtendedSimpleWeightedScorer(),
-        mastodon_token,
-        mastodon_base_url,
-        output_dir
-    )
+    run(config, ExtendedSimpleWeightedScorer(), mastodon_token, mastodon_base_url, output_dir)
