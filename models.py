@@ -1,13 +1,19 @@
 from config import Config
 from datetime import datetime, timedelta, timezone
-from mastodon import Mastodon
+from mastodon import Mastodon, MastodonVersionError
 from scorers import Scorer
 from typing import Any, ClassVar
 from urllib.parse import urlparse
+import requests
 
 
 class ScoredPost:
     mastodon_client_cache: ClassVar[dict[str, Mastodon]] = {}
+    bad_domains = {
+        "tech.lgbt",
+        "bsd.network",
+        "pixelfed.social",
+    }
 
     def __init__(self, data: dict):
         self._data = data
@@ -19,24 +25,47 @@ class ScoredPost:
     def set_content(self, content: str) -> None:
         self._data["content"] = content
 
-    def fetch_metrics(self) -> None:
+    def fetch_metrics(self) -> bool:
         if self.visibility == "private":
-            return
+            return False
 
         try:
             url_parts = urlparse(self.url)
-            api_base_url = f"{url_parts.scheme}://{url_parts.netloc}"
-            if api_base_url in ScoredPost.mastodon_client_cache:
-                mastodon_client = ScoredPost.mastodon_client_cache[api_base_url]
-            else:
-                mastodon_client = Mastodon(api_base_url=api_base_url, request_timeout=30)
-                ScoredPost.mastodon_client_cache[api_base_url] = mastodon_client
-            status = mastodon_client.status(url_parts.path.split("/")[-1])
+            if url_parts.netloc in ScoredPost.bad_domains:
+                return False
+
+            mastodon_client = self._create_mastodon_client(url_parts)
+            if mastodon_client is None:
+                return False
+
+            url_path_parts = url_parts.path.split("/")
+            post_id = url_path_parts[-1]
+            if url_path_parts[1] == "objects":
+                post_url = requests.head(self.url).headers["location"]
+                post_id = post_url.split("/")[-1]
+
+            status = mastodon_client.status(post_id)
             self._data["replies_count"] = status.replies_count
             self._data["reblogs_count"] = status.reblogs_count
             self._data["favourites_count"] = status.favourites_count
+            return True
         except Exception as e:
             print("An error occurred while enriching post: {0} {1}".format(self.url, e))
+            return False
+
+    def _create_mastodon_client(self, url_parts: list[str]) -> Mastodon:
+        api_base_url = f"{url_parts.scheme}://{url_parts.netloc}"
+        if api_base_url in ScoredPost.mastodon_client_cache:
+            return ScoredPost.mastodon_client_cache[api_base_url]
+        else:
+            mastodon_client = Mastodon(api_base_url=api_base_url, request_timeout=30)
+            try:
+                mastodon_client.instance()
+                ScoredPost.mastodon_client_cache[api_base_url] = mastodon_client
+                return mastodon_client
+            except MastodonVersionError:
+                ScoredPost.bad_domains.add(url_parts.netloc)
+                return None
 
     def get_home_url(self, mastodon_base_url: str) -> str:
         return f"{mastodon_base_url}/@{self.account['acct']}/{self.id}"

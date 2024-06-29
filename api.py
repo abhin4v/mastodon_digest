@@ -187,8 +187,8 @@ def fetch_posts_and_boosts(
 
     total_count = len(posts) + len(boosts)
     for i, scored_post in enumerate(itertools.chain(posts, boosts)):
-        print(f"[{i+1}/{total_count}] Fetching metrics for {scored_post.url}")
-        scored_post.fetch_metrics()
+        if scored_post.fetch_metrics():
+            print(f"[{i+1}/{total_count}] Fetched metrics for {scored_post.url}")
 
     return posts, boosts
 
