@@ -1,5 +1,5 @@
 [timeline]
-posts_limit = 2000
+posts_limit = 4000
 hours_limit = 24
 exclude_trending = true
 exclude_previously_digested_posts = true
@@ -19,15 +19,18 @@ halflife_hours = 6
 explore_frac = 0.2
 threshold = 80
 boosted_tags = [
-  "Haskell",
+  "bangalore",
+  "bengaluru",
   "compilers",
-  "ProgrammingLanguages",
+  "FunctionalProgramming",
+  "Haskell",
+  "India",
+  "lisp",
   "NixOS",
   "PLT",
-  "lisp",
-  "FunctionalProgramming",
+  "ProgrammingLanguages",
   "QuantifiedSelf",
-  "SelfHosting",
   "running",
+  "SelfHosting",
 ]
 boosted_list_ids = [1, 6, 12]
