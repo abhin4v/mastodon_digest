@@ -1,3 +1,4 @@
+from collections import defaultdict
 from bs4 import BeautifulSoup
 from config import Config
 from datetime import datetime, timedelta, timezone
@@ -19,16 +20,7 @@ class PostFilterator:
         self._seen_post_urls = set()
         self._mastodon_client = mastodon_client
         self._config = config
-        self._direct_post_count = 0
-        self._muted_post_count = 0
-        self._interacted_post_count = 0
-        self._old_post_count = 0
-        self._trending_post_count = 0
-        self._digested_post_count = 0
-        self._duplicate_post_count = 0
-        self._foreign_language_post_count = 0
-        self._filtered_post_count = 0
-        self._short_post_count = 0
+        self._stats = defaultdict(int)
         self._mastodon_user = mastodon_client.me()
         self._server_filters = self._get_server_filter_as_regex()
         self._trending_post_ids = self._get_trending_post_ids()
@@ -114,48 +106,48 @@ class PostFilterator:
                 and post.url in self._digested_post_urls
             ):
                 # print(f"Excluded seen post {post.url}")
-                self._digested_post_count += 1
+                self._stats["digested_post_count"] += 1
                 continue
 
             if post.visibility == "direct":
                 # print(f"Excluded direct post {post.url}")
-                self._direct_post_count += 1
+                self._stats["direct_post_count"] += 1
                 continue
 
             if post.muted:
                 # print(f"Excluded muted post {post.url}")
-                self._muted_post_count += 1
+                self._stats["muted_post_count"] += 1
                 continue
 
             if self._is_interacted_post(post):
                 # print(f"Excluded interacted post {post.url}")
-                self._interacted_post_count += 1
+                self._stats["interacted_post_count"] += 1
                 continue
 
             if post.created_at < self._min_post_created_at:
                 # print(f"Excluded old post {post.url}")
-                self._old_post_count += 1
+                self._stats["old_post_count"] += 1
                 continue
 
             if self._config.timeline_exclude_trending and post.id in self._trending_post_ids:
                 # print(f"Excluded trending post {post.url}")
-                self._trending_post_count += 1
+                self._stats["trending_post_count"] += 1
                 continue
 
             if post.content in self._contents:
                 # print(f"Excluded duplicate post {post.url}")
-                self._duplicate_post_count += 1
+                self._stats["duplicate_post_count"] += 1
                 continue
 
             if not self._is_valid_lang_post(post):
                 # print(f"Excluded foreign language post {post.url}")
-                self._foreign_language_post_count += 1
+                self._stats["foreign_language_post_count"] += 1
                 continue
 
             soup = BeautifulSoup(post.content, "html.parser")
             if self._is_short_post(post, soup):
                 # print(f"Excluded short post {post.url}")
-                self._short_post_count += 1
+                self._stats["short_post_count"] += 1
                 continue
 
             content_text = soup.get_text(" ", strip=True)
@@ -171,7 +163,7 @@ class PostFilterator:
                     )
                 ):
                     # print(f"Excluded post matching user's filters {post.url}")
-                    self._filtered_post_count += 1
+                    self._stats["filtered_post_count"] += 1
                     continue
 
             filtered_posts.append(post)
@@ -181,32 +173,9 @@ class PostFilterator:
         return (filtered_posts, boost_posts_urls)
 
     def print_stats(self):
-        total_count = (
-            self._direct_post_count
-            + self._muted_post_count
-            + self._interacted_post_count
-            + self._old_post_count
-            + self._digested_post_count
-            + self._trending_post_count
-            + self._duplicate_post_count
-            + self._foreign_language_post_count
-            + self._short_post_count
-            + self._filtered_post_count
-        )
-        print(
-            f"""Excluded posts:
-    total_count = {total_count}
-    direct_post_count = {self._direct_post_count}
-    muted_post_count = {self._muted_post_count}
-    interacted_post_count = {self._interacted_post_count}
-    old_post_count = {self._old_post_count}
-    digested_post_count = {self._digested_post_count}
-    trending_post_count = {self._trending_post_count}
-    duplicate_post_count = {self._duplicate_post_count}
-    foreign_language_post_count = {self._foreign_language_post_count}
-    short_post_count = {self._short_post_count}
-    filtered_post_count = {self._filtered_post_count}"""
-        )
+        print(f"Excluded {sum(self._stats.values())} posts:")
+        for key, val in self._stats.items():
+            print(f"    {key} = {self._stats[key]}")
 
 
 def fetch_posts_and_boosts(
