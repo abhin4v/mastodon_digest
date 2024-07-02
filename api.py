@@ -1,4 +1,3 @@
-import re
 from bs4 import BeautifulSoup
 from config import Config
 from datetime import datetime, timedelta, timezone
@@ -6,6 +5,7 @@ from mastodon import Mastodon
 from models import ScoredPost
 from typing import Optional
 import itertools
+import re
 import requests
 
 
@@ -20,6 +20,7 @@ class PostFilterator:
         self._mastodon_client = mastodon_client
         self._config = config
         self._direct_post_count = 0
+        self._muted_post_count = 0
         self._interacted_post_count = 0
         self._old_post_count = 0
         self._trending_post_count = 0
@@ -121,6 +122,11 @@ class PostFilterator:
                 self._direct_post_count += 1
                 continue
 
+            if post.muted:
+                # print(f"Excluded muted post {post.url}")
+                self._muted_post_count += 1
+                continue
+
             if self._is_interacted_post(post):
                 # print(f"Excluded interacted post {post.url}")
                 self._interacted_post_count += 1
@@ -175,9 +181,23 @@ class PostFilterator:
         return (filtered_posts, boost_posts_urls)
 
     def print_stats(self):
+        total_count = (
+            self._direct_post_count
+            + self._muted_post_count
+            + self._interacted_post_count
+            + self._old_post_count
+            + self._digested_post_count
+            + self._trending_post_count
+            + self._duplicate_post_count
+            + self._foreign_language_post_count
+            + self._short_post_count
+            + self._filtered_post_count
+        )
         print(
             f"""Excluded posts:
+    total_count = {total_count}
     direct_post_count = {self._direct_post_count}
+    muted_post_count = {self._muted_post_count}
     interacted_post_count = {self._interacted_post_count}
     old_post_count = {self._old_post_count}
     digested_post_count = {self._digested_post_count}
