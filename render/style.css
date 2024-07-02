@@ -214,9 +214,9 @@ details.post_wrapper .content {
     font-size: 1.2em;
 }
 
-.displayname img {
-    height: 16px;
-    width: 16px;
+img.emoji {
+    height: 1em;
+    width: 1em;
     vertical-align: middle;
     object-fit: contain;
 }
