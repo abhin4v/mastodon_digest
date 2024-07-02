@@ -19,10 +19,13 @@ halflife_hours = 6
 explore_frac = 0.2
 threshold = 80
 boosted_tags = [
+  "astronomy",
+  "astrophotography",
   "bangalore",
   "bengaluru",
   "compilers",
   "FunctionalProgramming",
+  "google",
   "Haskell",
   "India",
   "lisp",
