@@ -1,3 +1,4 @@
+import re
 from bs4 import BeautifulSoup
 from config import Config
 from datetime import datetime, timedelta, timezone
@@ -28,7 +29,7 @@ class PostFilterator:
         self._filtered_post_count = 0
         self._short_post_count = 0
         self._mastodon_user = mastodon_client.me()
-        self._server_filters = mastodon_client.filters()
+        self._server_filters = self._get_server_filter_as_regex()
         self._trending_post_ids = self._get_trending_post_ids()
         self._digested_post_urls = digested_post_urls
         self._min_post_created_at = datetime.now(timezone.utc) - timedelta(
@@ -37,6 +38,21 @@ class PostFilterator:
         self._contents = set()
 
         print(f"Fetching data for {self._mastodon_user.username}")
+
+    def _get_server_filter_as_regex(self) -> Optional[re.Pattern[str]]:
+        filters = self._mastodon_client.filters()
+        if filters:
+            filter_strings = []
+            for keyword_filter in filters:
+                if not "home" in keyword_filter["context"]:
+                    continue
+
+                filter_string = re.escape(keyword_filter["phrase"])
+                if keyword_filter["whole_word"]:
+                    filter_string = "\\b" + filter_string + "\\b"
+                filter_strings.append(filter_string)
+            return re.compile("|".join(filter_strings), flags=re.IGNORECASE)
+        return None
 
     def _get_trending_post_ids(self) -> set[int]:
         if self._config.timeline_exclude_trending:
@@ -136,17 +152,25 @@ class PostFilterator:
                 self._short_post_count += 1
                 continue
 
+            content_text = soup.get_text(" ", strip=True)
+            server_filters = self._server_filters
+            if server_filters is not None:
+                if (
+                    server_filters.search(content_text) is not None
+                    or server_filters.search(post.spoiler_text) is not None
+                    or any(
+                        media.description is not None
+                        and server_filters.search(media.description) is not None
+                        for media in post.media_attachments
+                    )
+                ):
+                    # print(f"Excluded post matching user's filters {post.url}")
+                    self._filtered_post_count += 1
+                    continue
+
             filtered_posts.append(post)
             if boost:
                 boost_posts_urls.add(post.url)
-
-        if self._server_filters:
-            post_count = len(filtered_posts)
-            filtered_posts = self._mastodon_client.filters_apply(
-                filtered_posts, self._server_filters, "home"
-            )
-            # print(f"Excluded {post_count - len(self._filtered_posts)} posts matching user's filters")
-            self._filtered_post_count += post_count - len(filtered_posts)
 
         return (filtered_posts, boost_posts_urls)
 
