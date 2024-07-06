@@ -53,7 +53,7 @@ class SimpleScorer(UniformWeight, Scorer):
             # Inflate every value by 1
             metric_average: float = stats.gmean(
                 [
-                    2 * post.reblogs_count + 1,
+                    4 * post.reblogs_count + 1,
                     post.favourites_count + 1,
                 ]
             )
@@ -77,8 +77,8 @@ class ExtendedSimpleScorer(UniformWeight, Scorer):
             # Inflate every value by 1
             metric_average: float = stats.gmean(
                 [
-                    4 * post.replies_count + 1,
-                    2 * post.reblogs_count + 1,
+                    4 * post.reblogs_count + 1,
+                    2 * post.replies_count + 1,
                     post.favourites_count + 1,
                 ],
             )
