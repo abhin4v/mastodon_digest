@@ -7,7 +7,7 @@ max_user_post_count = 3
 
 [post]
 min_word_count = 10
-max_age_hours = 36
+max_age_hours = 120
 languages = [ "en", "hi" ]
 
 [scoring]
