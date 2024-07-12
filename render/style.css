@@ -101,7 +101,7 @@ body {
     background-color: var(--background);
     padding: 0px;
     display: flex;
-    overflow: scroll;
+    overflow-x: auto;
     flex-direction: row;
     flex-wrap: wrap;
     /*! gap: 15px; */

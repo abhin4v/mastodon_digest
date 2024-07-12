@@ -35,4 +35,12 @@ boosted_tags = [
   "running",
   "SelfHosting",
 ]
+unboosted_tags = [
+  "cats",
+  "catsofmastodon",
+  "nyt",
+  "NewYorkTimes",
+  "religion",
+  "christianity"
+]
 boosted_list_ids = [1, 6, 12]

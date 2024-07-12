@@ -80,7 +80,9 @@ class ScoredPost:
         tags = [tag.name.lower() for tag in self.tags]
         if self.score > 0:
             if any((t in config.digest_boosted_tags) for t in tags):
-                self.score = config.scoring_tag_boost * self.score
+                self.score = self.score * config.scoring_tag_boost
+            if any((t in config.digest_unboosted_tags) for t in tags):
+                self.score = self.score / config.scoring_tag_boost
             if config.scoring_halflife_hours > 0:
                 self.score = self.score * (
                     0.5

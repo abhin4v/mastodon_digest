@@ -95,6 +95,7 @@ class Config:
     )
     digest_threshold: IntDescriptor = IntDescriptor(default=90, min_value=0, max_value=99)
     digest_boosted_tags: SetDescriptor = SetDescriptor(subtype=str)
+    digest_unboosted_tags: SetDescriptor = SetDescriptor(subtype=str)
     digest_boosted_list_ids: SetDescriptor = SetDescriptor(subtype=int)
     digest_digested_posts_file: TypedDescriptor = TypedDescriptor(
         default="digested_posts.json", type_=str
@@ -122,6 +123,7 @@ def validate_config(config: dict) -> Config:
         digest_explore_frac=digest["explore_frac"],
         digest_threshold=digest["threshold"],
         digest_boosted_tags=frozenset(t.lower() for t in digest.get("boosted_tags", [])),
+        digest_unboosted_tags=frozenset(t.lower() for t in digest.get("unboosted_tags", [])),
         digest_boosted_list_ids=frozenset(digest.get("boosted_list_ids", [])),
         digest_digested_posts_file=digest["digested_posts_file"],
     )
