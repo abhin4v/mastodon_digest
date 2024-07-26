@@ -78,7 +78,10 @@ class ScoredPost:
     ) -> None:
         self.score = scorer.score(self._data)
         tags = [tag.name.lower() for tag in self.tags]
+        tag_count_threshold = config.scoring_tag_count_threshold - 1
         if self.score > 0:
+            if len(tags) > tag_count_threshold:
+                self.score = self.score / ((len(tags) - tag_count_threshold) ** 0.5)
             if any((t in config.digest_boosted_tags) for t in tags):
                 self.score = self.score * config.scoring_tag_boost
             if any((t in config.digest_unboosted_tags) for t in tags):

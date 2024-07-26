@@ -5,6 +5,7 @@ from formatters import format_posts
 from jinja2 import Environment, FileSystemLoader
 from mastodon import Mastodon
 from pathlib import Path
+from models import ScoredPost
 from scorers import ExtendedSimpleWeightedScorer, Scorer
 from thresholds import Threshold
 import argparse
@@ -48,7 +49,7 @@ def get_digested_posts(config: Config) -> list[str]:
 
 
 def save_digested_posts(
-    digested_posts: list[str], posts: list[dict], boosts: list[dict], config: Config
+    digested_posts: list[str], posts: list[ScoredPost], boosts: list[ScoredPost], config: Config
 ) -> None:
     digested_posts.extend(post.url for post in itertools.chain(posts, boosts))
     digested_posts_count = int(
@@ -123,7 +124,7 @@ def run(
             "threshold": config.digest_threshold,
             "scorer": scorer.get_name(),
         },
-        output_dir=output_dir,
+        output_dir=Path(output_dir),
     )
 
 
