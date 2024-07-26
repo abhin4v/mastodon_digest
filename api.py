@@ -37,6 +37,9 @@ class PostFilterator:
         if filters:
             filter_strings = []
             for keyword_filter in filters:
+                if not keyword_filter["irreversible"]:
+                    continue
+
                 if not "home" in keyword_filter["context"]:
                     continue
 
@@ -150,6 +153,14 @@ class PostFilterator:
                 self._stats["short_post_count"] += 1
                 continue
 
+            if any(
+                "home" in f.filter.context and f.filter.filter_action == "hide"
+                for f in post.filtered
+            ):
+                # print(f"Excluded post matching user's filters on server side {post.url}")
+                self._stats["filtered_post_count"] += 1
+                continue
+
             content_text = soup.get_text(" ", strip=True)
             server_filters = self._server_filters
             if server_filters is not None:
@@ -162,7 +173,7 @@ class PostFilterator:
                         for media in post.media_attachments
                     )
                 ):
-                    # print(f"Excluded post matching user's filters {post.url}")
+                    # print(f"Excluded post matching user's filters on client side {post.url}")
                     self._stats["filtered_post_count"] += 1
                     continue
 

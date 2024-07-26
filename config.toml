@@ -34,7 +34,6 @@ boosted_tags = [
   "ProgrammingLanguages",
   "QuantifiedSelf",
   "running",
-  "SelfHosting",
 ]
 unboosted_tags = [
   "cats",
@@ -42,6 +41,7 @@ unboosted_tags = [
   "nyt",
   "NewYorkTimes",
   "religion",
-  "christianity"
+  "christianity",
+  "mutualAid"
 ]
 boosted_list_ids = [1, 6, 12]
