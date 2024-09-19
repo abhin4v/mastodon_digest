@@ -48,6 +48,7 @@ class ScoredPost:
             self._data["replies_count"] = status.replies_count
             self._data["reblogs_count"] = status.reblogs_count
             self._data["favourites_count"] = status.favourites_count
+            self._data["account"]["followers_count"] = status.account.followers_count
             return True
         except Exception as e:
             print("An error occurred while enriching post: {0} {1}".format(self.url, e))

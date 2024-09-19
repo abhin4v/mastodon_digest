@@ -42,6 +42,8 @@ unboosted_tags = [
   "NewYorkTimes",
   "religion",
   "christianity",
-  "mutualAid"
+  "mutualAid",
+  "fediblock",
+  "GetFediHired"
 ]
 boosted_list_ids = [1, 6, 12]
