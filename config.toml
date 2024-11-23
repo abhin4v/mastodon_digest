@@ -18,7 +18,7 @@ tag_count_threshold = 4
 
 [digest]
 explore_frac = 0.2
-threshold = 80
+threshold = 70
 boosted_tags = [
   "astronomy",
   "astrophotography",
@@ -31,6 +31,7 @@ boosted_tags = [
   "lisp",
   "NixOS",
   "PLT",
+  "PLDev",
   "ProgrammingLanguages",
   "QuantifiedSelf",
   "running",
@@ -46,4 +47,4 @@ unboosted_tags = [
   "fediblock",
   "GetFediHired"
 ]
-boosted_list_ids = [1, 6, 12]
+boosted_list_ids = [6, 7, 12]
