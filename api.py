@@ -238,7 +238,11 @@ def fetch_boosted_accounts(mastodon_client: Mastodon, boosted_lists: set[int]) -
 
 
 def get_known_instance_domains() -> set[str]:
-    with requests.get("https://nodes.fediverse.party/nodes.json") as resp:
-        domains = resp.json()
-        assert type(domains) == list
-        return set("://" + domain + "/" for domain in domains)
+    try:
+        with requests.get("https://nodes.fediverse.party/nodes.json") as resp:
+            domains = resp.json()
+            assert type(domains) == list
+            return set("://" + domain + "/" for domain in domains)
+    except requests.exceptions.RequestException as err:
+        print("Error in getting fediverse nodes.json", err)
+        return set()
