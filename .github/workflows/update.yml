@@ -25,7 +25,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       - name: Download previous digest
-        run: curl -o ./render/previous.html https://abhin4v.github.io/mastodon_digest/
+        run: |
+          curl -o ./render/previous.html https://abhin4v.github.io/mastodon_digest/
+          curl -o ./render/previous2.html https://abhin4v.github.io/mastodon_digest/previous.html
       - name: Download digested_posts.json
         run: |
           curl -L -o digested_posts.json.zip https://nightly.link/abhin4v/mastodon_digest/workflows/update/main/digested_posts.json.zip
