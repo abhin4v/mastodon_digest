@@ -6,7 +6,7 @@ exclude_previously_digested_posts = true
 max_user_post_count = 3
 
 [post]
-min_word_count = 10
+min_word_count = 8
 max_age_hours = 240
 languages = [ "en", "hi" ]
 
