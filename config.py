@@ -89,6 +89,7 @@ class Config:
     post_languages: SetDescriptor = SetDescriptor(subtype=str)
     scoring_tag_boost: FloatDescriptor = FloatDescriptor(default=1.2, min_value=1, max_value=2)
     scoring_account_boost: FloatDescriptor = FloatDescriptor(default=1.2, min_value=1, max_value=2)
+    scoring_reply_unboost: FloatDescriptor = FloatDescriptor(default=1.5, min_value=1, max_value=2)
     scoring_halflife_hours: IntDescriptor = IntDescriptor(default=0, min_value=1, max_value=24)
     scoring_tag_count_threshold: IntDescriptor = IntDescriptor(default=3, min_value=1, max_value=10)
     digest_explore_frac: FloatDescriptor = FloatDescriptor(
@@ -120,6 +121,7 @@ def validate_config(config: dict) -> Config:
         post_languages=frozenset(l.lower() for l in post.get("languages", [])),
         scoring_tag_boost=scoring["tag_boost"],
         scoring_account_boost=scoring["account_boost"],
+        scoring_reply_unboost=scoring["reply_unboost"],
         scoring_halflife_hours=scoring["halflife_hours"],
         scoring_tag_count_threshold=scoring["tag_count_threshold"],
         digest_explore_frac=digest["explore_frac"],

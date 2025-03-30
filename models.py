@@ -87,6 +87,8 @@ class ScoredPost:
                 self.score = self.score * config.scoring_tag_boost
             if any((t in config.digest_unboosted_tags) for t in tags):
                 self.score = self.score / config.scoring_tag_boost
+            if self._data['in_reply_to_id'] is not None:
+              self.score = self.score / config.scoring_reply_unboost
             if config.scoring_halflife_hours > 0:
                 self.score = self.score * (
                     0.5
