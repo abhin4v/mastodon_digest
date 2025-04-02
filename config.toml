@@ -14,6 +14,7 @@ languages = [ "en", "hi" ]
 tag_boost = 1.2
 account_boost = 1.2
 reply_unboost = 1.5
+bot_unboost = 1.2
 halflife_hours = 6
 tag_count_threshold = 4
 
