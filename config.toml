@@ -20,7 +20,7 @@ tag_count_threshold = 4
 
 [digest]
 explore_frac = 0.2
-threshold = 70
+threshold = 50
 boosted_tags = [
   "astronomy",
   "astrophotography",
