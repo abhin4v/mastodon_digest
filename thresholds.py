@@ -43,7 +43,7 @@ class Threshold:
         threshold_posts.sort(key=lambda p: p.score, reverse=True)
 
         non_threshold_posts_sample = []
-        if non_threshold_post_frac > 0:
+        if len(non_threshold_posts) > 0 and non_threshold_post_frac > 0:
             sample_size = int(non_threshold_post_frac * len(threshold_posts))
             if sample_size > 0:
                 indices = np.random.choice(len(threshold_posts), size=sample_size, replace=False)
