@@ -19,8 +19,8 @@ halflife_hours = 6
 tag_count_threshold = 4
 
 [digest]
-explore_frac = 0.2
-threshold = 50
+explore_frac = 0.1
+threshold = 40
 boosted_tags = [
   "astronomy",
   "astrophotography",
