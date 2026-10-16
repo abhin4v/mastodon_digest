@@ -1,18 +1,23 @@
 from collections import defaultdict
 from bs4 import BeautifulSoup
 from config import Config
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 from mastodon import Mastodon
 from mastodon.return_types import Status
 from mastodon.types_base import PaginatableList
 from models import ScoredPost
+from threading import Lock
 from typing import Optional
+from urllib.parse import urlparse
 import itertools
 import logging
 import re
 import requests
 
 logger = logging.getLogger(__name__)
+
+METRICS_MAX_WORKERS = 10
 
 
 class PostFilterator:
@@ -198,6 +203,49 @@ class PostFilterator:
             logger.info("    %s = %s", key, val)
 
 
+def fetch_metrics(all_posts: list[ScoredPost]) -> None:
+    """Fetches API metrics for all posts, one worker thread per instance
+
+    Posts are grouped by instance (URL netloc) and each group is fetched
+    sequentially by a single thread, so no instance receives concurrent
+    requests, while different instances are fetched in parallel.
+    """
+    total_count = len(all_posts)
+    logger.info("Fetching metrics for %s posts...", total_count)
+    if not all_posts:
+        return
+
+    groups: dict[str, list[ScoredPost]] = {}
+    for post in all_posts:
+        try:
+            netloc = urlparse(post.url).netloc
+        except Exception:
+            netloc = ""
+        groups.setdefault(netloc, []).append(post)
+
+    progress_lock = Lock()
+    attempt_counter = itertools.count(1)
+
+    def fetch_group(group: list[ScoredPost]) -> None:
+        for post in group:
+            fetched = post.fetch_metrics()
+            with progress_lock:
+                i = next(attempt_counter)
+                if fetched:
+                    logger.info("[%s/%s] Fetched metrics for %s", i, total_count, post.url)
+
+    executor = ThreadPoolExecutor(max_workers=METRICS_MAX_WORKERS)
+    try:
+        futures = [
+            executor.submit(fetch_group, group)
+            for group in sorted(groups.values(), key=len, reverse=True)
+        ]
+        for future in as_completed(futures):
+            future.result()
+    finally:
+        executor.shutdown(wait=True, cancel_futures=True)
+
+
 def fetch_posts_and_boosts(
     digested_post_urls: set[str], mastodon_client: Mastodon, config: Config
 ) -> tuple[list[ScoredPost], list[ScoredPost]]:
@@ -231,11 +279,7 @@ def fetch_posts_and_boosts(
 
     filterator.print_stats()
 
-    total_count = len(posts) + len(boosts)
-    logger.info("Fetching metrics for %s posts...", total_count)
-    for i, scored_post in enumerate(itertools.chain(posts, boosts)):
-        if scored_post.fetch_metrics():
-            logger.info("[%s/%s] Fetched metrics for %s", i + 1, total_count, scored_post.url)
+    fetch_metrics(list(itertools.chain(posts, boosts)))
 
     return posts, boosts
 
