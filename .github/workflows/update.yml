@@ -33,14 +33,20 @@ jobs:
           curl -o ./render/previous2.html https://abhin4v.github.io/mastodon_digest/previous.html
       - name: Download digested_posts.json
         run: |
-          curl -fsSL -o digested_posts.json https://abhin4v.github.io/mastodon_digest/digested_posts.json || echo '[]' > digested_posts.json
+          if curl -fsSL -o digested_posts.json.gz https://abhin4v.github.io/mastodon_digest/digested_posts.json.gz; then
+            gunzip digested_posts.json.gz
+          elif curl -fsSL -o digested_posts.json https://abhin4v.github.io/mastodon_digest/digested_posts.json; then
+            echo "Downloaded uncompressed digested_posts.json"
+          else
+            echo '[]' > digested_posts.json
+          fi
       - name: run digest
         env:
           MASTODON_TOKEN: ${{ secrets.MASTODON_TOKEN }}
           MASTODON_BASE_URL: ${{ secrets.MASTODON_BASE_URL }}
         run: python run.py ./render/
-      - name: Copy digested_posts.json to render
-        run: cp digested_posts.json render/
+      - name: Gzip digested_posts.json
+        run: gzip -k digested_posts.json && mv digested_posts.json.gz render/
       - name: publish
         uses: crazy-max/ghaction-github-pages@v3
         with:
