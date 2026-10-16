@@ -2,6 +2,7 @@
 let
   my-python-packages = ps: with ps; [
     scipy
+    scipy-stubs
     mastodon-py
     requests
     types-requests

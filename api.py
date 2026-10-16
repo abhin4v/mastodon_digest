@@ -3,6 +3,8 @@ from bs4 import BeautifulSoup
 from config import Config
 from datetime import datetime, timedelta, timezone
 from mastodon import Mastodon
+from mastodon.return_types import Status
+from mastodon.types_base import PaginatableList
 from models import ScoredPost
 from typing import Optional
 import itertools
@@ -20,10 +22,10 @@ class PostFilterator:
         mastodon_client: Mastodon,
         config: Config,
     ) -> None:
-        self._seen_post_urls = set()
+        self._seen_post_urls: set[str] = set()
         self._mastodon_client = mastodon_client
         self._config = config
-        self._stats = defaultdict(int)
+        self._stats: defaultdict[str, int] = defaultdict(int)
         self._mastodon_user = mastodon_client.me()
         self._server_filters = self._get_server_filter_as_regex()
         self._trending_post_ids = self._get_trending_post_ids()
@@ -31,7 +33,7 @@ class PostFilterator:
         self._min_post_created_at = datetime.now(timezone.utc) - timedelta(
             hours=config.post_max_age_hours
         )
-        self._contents = set()
+        self._contents: set[str] = set()
 
         logger.info("Fetching data for %s", self._mastodon_user.username)
 
@@ -58,7 +60,7 @@ class PostFilterator:
             return set(p.id for p in self._mastodon_client.trending_statuses())
         return set()
 
-    def _is_short_post(self, post: dict, soup: BeautifulSoup) -> bool:
+    def _is_short_post(self, post: Status, soup: BeautifulSoup) -> bool:
         words = [
             word
             for word in soup.text.split()
@@ -77,12 +79,12 @@ class PostFilterator:
             == 0
         )
 
-    def _is_valid_lang_post(self, post: dict) -> bool:
+    def _is_valid_lang_post(self, post: Status) -> bool:
         if len(self._config.post_languages) > 0:
             return post.language is None or post.language in self._config.post_languages
         return True
 
-    def _is_interacted_post(self, post: dict) -> bool:
+    def _is_interacted_post(self, post: Status) -> bool:
         return (
             post.reblogged
             or post.favourited
@@ -94,7 +96,7 @@ class PostFilterator:
     def add_seen_post_url(self, url: str) -> None:
         self._seen_post_urls.add(url)
 
-    def filter_posts(self, posts: list[dict]) -> tuple[list[dict], set[str]]:
+    def filter_posts(self, posts: list[Status]) -> tuple[list[Status], set[str | None]]:
         filtered_posts = []
         boost_posts_urls = set()
         for post in posts:
@@ -158,7 +160,7 @@ class PostFilterator:
 
             if any(
                 "home" in f.filter.context and f.filter.filter_action == "hide"
-                for f in post.filtered
+                for f in (post.filtered or [])
             ):
                 logger.debug(
                     "Excluded post matching user's filters on server side %s", post.url
@@ -207,7 +209,9 @@ def fetch_posts_and_boosts(
     filterator = PostFilterator(digested_post_urls, mastodon_client, config)
 
     # Iterate over our home timeline until we run out of posts or we hit the limit
-    response: Optional[list[dict]] = mastodon_client.timeline(min_id=start, limit=40)
+    response: Optional[PaginatableList[Status]] = mastodon_client.timeline(
+        min_id=start, limit=40
+    )
     while response and total_posts_seen < config.timeline_posts_limit:
         logger.info("Fetched timeline posts")
         resp_posts, boost_posts_urls = filterator.filter_posts(response)
@@ -223,7 +227,7 @@ def fetch_posts_and_boosts(
             filterator.add_seen_post_url(scored_post.url)
 
         # fetch the previous (because of reverse chron) page of results
-        response = mastodon_client.fetch_previous(response)
+        response = mastodon_client.fetch_previous(response)  # type: ignore[arg-type]
 
     filterator.print_stats()
 

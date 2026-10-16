@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from math import sqrt
+from mastodon.return_types import Status
 from typing import Callable
 from scipy import stats
 import importlib
@@ -9,19 +10,19 @@ import inspect
 class Weight(ABC):
     @classmethod
     @abstractmethod
-    def weight(cls, post: dict) -> float:
+    def weight(cls, post: Status) -> float:
         pass
 
 
 class UniformWeight(Weight):
     @classmethod
-    def weight(cls, post: dict) -> float:
+    def weight(cls, post: Status) -> float:
         return 1
 
 
 class InverseFollowerWeight(Weight):
     @classmethod
-    def weight(cls, post: dict) -> float:
+    def weight(cls, post: Status) -> float:
         # Zero out posts by accounts with zero followers,
         # or less (count is -1 when the followers count is hidden)
         if post.account.followers_count <= 0:
@@ -36,7 +37,7 @@ class InverseFollowerWeight(Weight):
 class Scorer(ABC):
     @classmethod
     @abstractmethod
-    def score(cls, post: dict) -> float:
+    def score(cls, post: Status) -> float:
         pass
 
     @classmethod
@@ -46,7 +47,7 @@ class Scorer(ABC):
 
 class SimpleScorer(UniformWeight, Scorer):
     @classmethod
-    def score(cls, post: dict) -> float:
+    def score(cls, post: Status) -> float:
         if post.reblogs_count or post.favourites_count:
             # If there's at least one metric
             # We don't want zeros in other metrics to multiply that out
@@ -64,13 +65,13 @@ class SimpleScorer(UniformWeight, Scorer):
 
 class SimpleWeightedScorer(InverseFollowerWeight, SimpleScorer):
     @classmethod
-    def score(cls, post: dict) -> float:
+    def score(cls, post: Status) -> float:
         return super().score(post) * super().weight(post)
 
 
 class ExtendedSimpleScorer(UniformWeight, Scorer):
     @classmethod
-    def score(cls, post: dict) -> float:
+    def score(cls, post: Status) -> float:
         if post.reblogs_count or post.favourites_count or post.replies_count:
             # If there's at least one metric
             # We don't want zeros in other metrics to multiply that out
@@ -89,7 +90,7 @@ class ExtendedSimpleScorer(UniformWeight, Scorer):
 
 class ExtendedSimpleWeightedScorer(InverseFollowerWeight, ExtendedSimpleScorer):
     @classmethod
-    def score(cls, post: dict) -> float:
+    def score(cls, post: Status) -> float:
         return super().score(post) * super().weight(post)
 
 

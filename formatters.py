@@ -1,4 +1,5 @@
 from bs4 import BeautifulSoup
+from mastodon.return_types import CustomEmoji, MediaAttachment
 from models import ScoredPost
 import html
 
@@ -21,7 +22,7 @@ def fix_post_links(post: ScoredPost, known_instance_domains: set[str]) -> str:
     return str(soup)
 
 
-def replace_emojis(content: str, emojis: list[dict]) -> str:
+def replace_emojis(content: str, emojis: list[CustomEmoji]) -> str:
     for emoji in emojis:
         shortcode = html.escape(emoji.shortcode)
         content = content.replace(
@@ -31,7 +32,7 @@ def replace_emojis(content: str, emojis: list[dict]) -> str:
     return content
 
 
-def format_media(media: dict, media_count: int) -> str:
+def format_media(media: MediaAttachment, media_count: int) -> str:
     url = media.url
     description = html.escape(media.description) if media.description != None else ""
     caption = f"<figcaption>{description}</figcaption>" if media.description != None else ""

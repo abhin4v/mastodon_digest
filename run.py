@@ -85,7 +85,7 @@ def run(
     scorer: Scorer,
     mastodon_token: str,
     mastodon_base_url: str,
-    output_dir: str,
+    output_dir: Path,
 ) -> None:
     logger.info("Running with config:")
     logger.info("%s", pprint.pformat(config))
@@ -143,7 +143,7 @@ def run(
             "threshold": config.digest_threshold,
             "scorer": scorer.get_name(),
         },
-        output_dir=Path(output_dir),
+        output_dir=output_dir,
     )
 
 

@@ -1,9 +1,10 @@
 from config import Config
 from datetime import datetime, timedelta, timezone
 from mastodon import Mastodon, MastodonVersionError
+from mastodon.return_types import Status
 from scorers import Scorer
-from typing import Any, ClassVar
-from urllib.parse import urlparse
+from typing import Any, ClassVar, Optional
+from urllib.parse import ParseResult, urlparse
 import logging
 import requests
 
@@ -18,7 +19,7 @@ class ScoredPost:
         "pixelfed.social",
     }
 
-    def __init__(self, data: dict):
+    def __init__(self, data: Status):
         self._data = data
         self.score = 0.0
 
@@ -57,7 +58,7 @@ class ScoredPost:
             logger.error("An error occurred while enriching post: %s %s", self.url, e)
             return False
 
-    def _create_mastodon_client(self, url_parts: list[str]) -> Mastodon:
+    def _create_mastodon_client(self, url_parts: ParseResult) -> Optional[Mastodon]:
         api_base_url = f"{url_parts.scheme}://{url_parts.netloc}"
         if api_base_url in ScoredPost.mastodon_client_cache:
             return ScoredPost.mastodon_client_cache[api_base_url]
