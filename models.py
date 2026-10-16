@@ -41,7 +41,7 @@ class ScoredPost:
             url_path_parts = url_parts.path.split("/")
             post_id = url_path_parts[-1]
             if url_path_parts[1] == "objects":
-                post_url = requests.head(self.url).headers["location"]
+                post_url = requests.head(self.url, timeout=30).headers["location"]
                 post_id = post_url.split("/")[-1]
 
             status = mastodon_client.status(post_id)

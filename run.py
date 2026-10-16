@@ -83,6 +83,7 @@ def run(
     mastodon_client = Mastodon(
         access_token=mastodon_token,
         api_base_url=mastodon_base_url,
+        request_timeout=30,
     )
     non_threshold_posts_frac = config.digest_explore_frac / (1 - config.digest_explore_frac)
 
