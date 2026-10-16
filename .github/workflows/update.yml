@@ -8,6 +8,9 @@ jobs:
   update:
     name: digest
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PYTHONUNBUFFERED: '1'
     steps:
       - name: Install curl and unzip
         run: sudo apt-get install -y curl unzip

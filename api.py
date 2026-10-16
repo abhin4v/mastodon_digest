@@ -221,6 +221,7 @@ def fetch_posts_and_boosts(
     filterator.print_stats()
 
     total_count = len(posts) + len(boosts)
+    print(f"[{datetime.now():%H:%M:%S}] Fetching metrics for {total_count} posts...", flush=True)
     for i, scored_post in enumerate(itertools.chain(posts, boosts)):
         if scored_post.fetch_metrics():
             print(f"[{i+1}/{total_count}] Fetched metrics for {scored_post.url}")
@@ -229,6 +230,10 @@ def fetch_posts_and_boosts(
 
 
 def fetch_boosted_accounts(mastodon_client: Mastodon, boosted_lists: set[int]) -> set[str]:
+    print(
+        f"[{datetime.now():%H:%M:%S}] Fetching accounts for {len(boosted_lists)} boosted lists...",
+        flush=True,
+    )
     boosted_accounts: list[str] = []
     for id in boosted_lists:
         accounts = mastodon_client.list_accounts(id, limit="0")
@@ -238,11 +243,17 @@ def fetch_boosted_accounts(mastodon_client: Mastodon, boosted_lists: set[int]) -
 
 
 def get_known_instance_domains() -> set[str]:
+    print(f"[{datetime.now():%H:%M:%S}] Fetching known instance domains...", flush=True)
     try:
         with requests.get("https://nodes.fediverse.party/nodes.json", timeout=30) as resp:
             domains = resp.json()
             assert type(domains) == list
-            return set("://" + domain + "/" for domain in domains)
+            known_domains = set("://" + domain + "/" for domain in domains)
+            print(
+                f"[{datetime.now():%H:%M:%S}] Known instance domains: {len(known_domains)}",
+                flush=True,
+            )
+            return known_domains
     except requests.exceptions.RequestException as err:
         print("Error in getting fediverse nodes.json", err)
         return set()

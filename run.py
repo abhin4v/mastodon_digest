@@ -87,15 +87,18 @@ def run(
     )
     non_threshold_posts_frac = config.digest_explore_frac / (1 - config.digest_explore_frac)
 
+    print(f"[{datetime.now():%H:%M:%S}] Fetching boosted list accounts...", flush=True)
     boosted_accounts = fetch_boosted_accounts(mastodon_client, config.digest_boosted_list_ids)
     digested_posts = get_digested_posts(config)
     print(f"Read {len(digested_posts)} digested post URLs")
 
     # 1. Fetch all the posts and boosts from our home timeline that we haven't interacted with
+    print(f"[{datetime.now():%H:%M:%S}] Fetching timeline posts...", flush=True)
     posts, boosts = fetch_posts_and_boosts(set(digested_posts), mastodon_client, config)
     known_instance_domains = get_known_instance_domains()
 
     # 2. Score them, and return those that meet our threshold
+    print(f"[{datetime.now():%H:%M:%S}] Scoring posts...", flush=True)
     threshold = Threshold(config.digest_threshold)
     threshold_posts = threshold.posts_meeting_criteria(
         posts,
@@ -112,9 +115,11 @@ def run(
         scorer,
     )
 
+    print(f"[{datetime.now():%H:%M:%S}] Saving digested posts...", flush=True)
     save_digested_posts(digested_posts, threshold_posts, threshold_boosts, config)
 
     # 3. Build the digest
+    print(f"[{datetime.now():%H:%M:%S}] Rendering digest...", flush=True)
     render_digest(
         context={
             "hours": hours,
