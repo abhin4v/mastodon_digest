@@ -208,7 +208,9 @@ def fetch_metrics(all_posts: list[ScoredPost]) -> None:
 
     Posts are grouped by instance (URL netloc) and each group is fetched
     sequentially by a single thread, so no instance receives concurrent
-    requests, while different instances are fetched in parallel.
+    requests, while different instances are fetched in parallel. The largest
+    group is split in half and fetched by two threads, since it dominates
+    the total time.
     """
     total_count = len(all_posts)
     logger.info("Fetching metrics for %s posts...", total_count)
@@ -223,6 +225,15 @@ def fetch_metrics(all_posts: list[ScoredPost]) -> None:
             netloc = ""
         groups.setdefault(netloc, []).append(post)
 
+    tasks: list[list[ScoredPost]] = []
+    sorted_groups = sorted(groups.values(), key=len, reverse=True)
+    for i, group in enumerate(sorted_groups):
+        if i == 0 and len(group) >= 2:
+            mid = len(group) // 2
+            tasks.extend([group[:mid], group[mid:]])
+        else:
+            tasks.append(group)
+
     progress_lock = Lock()
     attempt_counter = itertools.count(1)
 
@@ -236,10 +247,7 @@ def fetch_metrics(all_posts: list[ScoredPost]) -> None:
 
     executor = ThreadPoolExecutor(max_workers=METRICS_MAX_WORKERS)
     try:
-        futures = [
-            executor.submit(fetch_group, group)
-            for group in sorted(groups.values(), key=len, reverse=True)
-        ]
+        futures = [executor.submit(fetch_group, group) for group in tasks]
         for future in as_completed(futures):
             future.result()
     finally:
