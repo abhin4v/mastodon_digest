@@ -1,0 +1,31 @@
+# Domains skipped during metrics enrichment (one per line).
+# These don't serve Mastodon-compatible status metrics to unauthenticated
+# clients: no /api/v1/statuses endpoint, auth-required, or plain broken.
+tech.lgbt
+bsd.network
+pixelfed.social
+fed.brid.gy
+bsky.brid.gy
+www.threads.com
+flipboard.com
+hackers.pub
+rss-parrot.net
+bl.ag
+cal.labr.online
+notes.tracydurnell.com
+fawkes.rocks
+status.nevillepark.ca
+app.wafrn.net
+explains.social
+murad.social
+pubsub.leastfixedpoint.com
+reentry.codl.fr
+gts.snakepit.us
+gone.lema.org
+bots.gruezi.net
+gts.niko.lgbt
+gotosocial-dev.svc.0x0a.network
+gotosocial.abishekmuthian.com
+lethargic.talkative.fish
+hey.hagelb.org
+blahaj.zone

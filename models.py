@@ -1,23 +1,41 @@
 from config import Config
 from datetime import datetime, timedelta, timezone
-from mastodon import Mastodon, MastodonVersionError
 from mastodon.return_types import Status
 from scorers import Scorer
-from typing import Any, ClassVar, Optional
-from urllib.parse import ParseResult, urlparse
+from typing import Any
+from urllib.parse import urlparse
+from pathlib import Path
 import logging
 import requests
+import threading
 
 logger = logging.getLogger(__name__)
 
+# requests.Session is not thread-safe; fetch_metrics runs on the
+# fetch_metrics thread pool, so give each thread its own session.
+_thread_local = threading.local()
+
+
+def _get_session() -> requests.Session:
+    session = getattr(_thread_local, "session", None)
+    if session is None:
+        session = requests.Session()
+        _thread_local.session = session
+    return session
+
+
+def _load_bad_domains() -> set[str]:
+    path = Path(__file__).with_name("bad_domains.txt")
+    domains = set()
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if line and not line.startswith("#"):
+            domains.add(line)
+    return domains
+
 
 class ScoredPost:
-    mastodon_client_cache: ClassVar[dict[str, Mastodon]] = {}
-    bad_domains = {
-        "tech.lgbt",
-        "bsd.network",
-        "pixelfed.social",
-    }
+    bad_domains = _load_bad_domains()
 
     def __init__(self, data: Status):
         self._data = data
@@ -38,39 +56,24 @@ class ScoredPost:
             if url_parts.netloc in ScoredPost.bad_domains:
                 return False
 
-            mastodon_client = self._create_mastodon_client(url_parts)
-            if mastodon_client is None:
-                return False
-
             url_path_parts = url_parts.path.split("/")
             post_id = url_path_parts[-1]
             if url_path_parts[1] == "objects":
-                post_url = requests.head(self.url, timeout=30).headers["location"]
+                post_url = _get_session().head(self.url, timeout=30).headers["location"]
                 post_id = post_url.split("/")[-1]
 
-            status = mastodon_client.status(post_id)
-            self._data["replies_count"] = status.replies_count
-            self._data["reblogs_count"] = status.reblogs_count
-            self._data["favourites_count"] = status.favourites_count
-            self._data["account"]["followers_count"] = status.account.followers_count
+            api_url = f"{url_parts.scheme}://{url_parts.netloc}/api/v1/statuses/{post_id}"
+            response = _get_session().get(api_url, timeout=30)
+            response.raise_for_status()
+            status = response.json()
+            self._data["replies_count"] = status["replies_count"]
+            self._data["reblogs_count"] = status["reblogs_count"]
+            self._data["favourites_count"] = status["favourites_count"]
+            self._data["account"]["followers_count"] = status["account"]["followers_count"]
             return True
         except Exception as e:
             logger.error("An error occurred while enriching post: %s %s", self.url, e)
             return False
-
-    def _create_mastodon_client(self, url_parts: ParseResult) -> Optional[Mastodon]:
-        api_base_url = f"{url_parts.scheme}://{url_parts.netloc}"
-        if api_base_url in ScoredPost.mastodon_client_cache:
-            return ScoredPost.mastodon_client_cache[api_base_url]
-        else:
-            mastodon_client = Mastodon(api_base_url=api_base_url, request_timeout=30)
-            try:
-                mastodon_client.instance()
-                ScoredPost.mastodon_client_cache[api_base_url] = mastodon_client
-                return mastodon_client
-            except MastodonVersionError:
-                ScoredPost.bad_domains.add(url_parts.netloc)
-                return None
 
     def get_home_url(self, mastodon_base_url: str) -> str:
         return f"{mastodon_base_url}/@{self.account['acct']}/{self.id}"
