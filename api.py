@@ -6,8 +6,11 @@ from mastodon import Mastodon
 from models import ScoredPost
 from typing import Optional
 import itertools
+import logging
 import re
 import requests
+
+logger = logging.getLogger(__name__)
 
 
 class PostFilterator:
@@ -30,7 +33,7 @@ class PostFilterator:
         )
         self._contents = set()
 
-        print(f"Fetching data for {self._mastodon_user.username}")
+        logger.info("Fetching data for %s", self._mastodon_user.username)
 
     def _get_server_filter_as_regex(self) -> Optional[re.Pattern[str]]:
         filters = self._mastodon_client.filters()
@@ -101,55 +104,55 @@ class PostFilterator:
                 boost = True
 
             if post.url in self._seen_post_urls:
-                # print(f"Excluded seen post {post.url}")
+                logger.debug("Excluded seen post %s", post.url)
                 continue
 
             if (
                 self._config.timeline_exclude_previously_digested_posts
                 and post.url in self._digested_post_urls
             ):
-                # print(f"Excluded seen post {post.url}")
+                logger.debug("Excluded digested post %s", post.url)
                 self._stats["digested_post_count"] += 1
                 continue
 
             if post.visibility == "direct":
-                # print(f"Excluded direct post {post.url}")
+                logger.debug("Excluded direct post %s", post.url)
                 self._stats["direct_post_count"] += 1
                 continue
 
             if post.muted:
-                # print(f"Excluded muted post {post.url}")
+                logger.debug("Excluded muted post %s", post.url)
                 self._stats["muted_post_count"] += 1
                 continue
 
             if self._is_interacted_post(post):
-                # print(f"Excluded interacted post {post.url}")
+                logger.debug("Excluded interacted post %s", post.url)
                 self._stats["interacted_post_count"] += 1
                 continue
 
             if post.created_at < self._min_post_created_at:
-                # print(f"Excluded old post {post.url}")
+                logger.debug("Excluded old post %s", post.url)
                 self._stats["old_post_count"] += 1
                 continue
 
             if self._config.timeline_exclude_trending and post.id in self._trending_post_ids:
-                # print(f"Excluded trending post {post.url}")
+                logger.debug("Excluded trending post %s", post.url)
                 self._stats["trending_post_count"] += 1
                 continue
 
             if post.content in self._contents:
-                # print(f"Excluded duplicate post {post.url}")
+                logger.debug("Excluded duplicate post %s", post.url)
                 self._stats["duplicate_post_count"] += 1
                 continue
 
             if not self._is_valid_lang_post(post):
-                # print(f"Excluded foreign language post {post.url}")
+                logger.debug("Excluded foreign language post %s", post.url)
                 self._stats["foreign_language_post_count"] += 1
                 continue
 
             soup = BeautifulSoup(post.content, "html.parser")
             if self._is_short_post(post, soup):
-                # print(f"Excluded short post {post.url}")
+                logger.debug("Excluded short post %s", post.url)
                 self._stats["short_post_count"] += 1
                 continue
 
@@ -157,7 +160,9 @@ class PostFilterator:
                 "home" in f.filter.context and f.filter.filter_action == "hide"
                 for f in post.filtered
             ):
-                # print(f"Excluded post matching user's filters on server side {post.url}")
+                logger.debug(
+                    "Excluded post matching user's filters on server side %s", post.url
+                )
                 self._stats["filtered_post_count"] += 1
                 continue
 
@@ -173,7 +178,9 @@ class PostFilterator:
                         for media in post.media_attachments
                     )
                 ):
-                    # print(f"Excluded post matching user's filters on client side {post.url}")
+                    logger.debug(
+                        "Excluded post matching user's filters on client side %s", post.url
+                    )
                     self._stats["filtered_post_count"] += 1
                     continue
 
@@ -184,9 +191,9 @@ class PostFilterator:
         return (filtered_posts, boost_posts_urls)
 
     def print_stats(self):
-        print(f"Excluded {sum(self._stats.values())} posts:")
+        logger.info("Excluded %s posts:", sum(self._stats.values()))
         for key, val in self._stats.items():
-            print(f"    {key} = {self._stats[key]}")
+            logger.info("    %s = %s", key, val)
 
 
 def fetch_posts_and_boosts(
@@ -202,7 +209,7 @@ def fetch_posts_and_boosts(
     # Iterate over our home timeline until we run out of posts or we hit the limit
     response: Optional[list[dict]] = mastodon_client.timeline(min_id=start, limit=40)
     while response and total_posts_seen < config.timeline_posts_limit:
-        print("Fetched timeline posts")
+        logger.info("Fetched timeline posts")
         resp_posts, boost_posts_urls = filterator.filter_posts(response)
 
         for post in resp_posts:
@@ -221,19 +228,16 @@ def fetch_posts_and_boosts(
     filterator.print_stats()
 
     total_count = len(posts) + len(boosts)
-    print(f"[{datetime.now():%H:%M:%S}] Fetching metrics for {total_count} posts...", flush=True)
+    logger.info("Fetching metrics for %s posts...", total_count)
     for i, scored_post in enumerate(itertools.chain(posts, boosts)):
         if scored_post.fetch_metrics():
-            print(f"[{i+1}/{total_count}] Fetched metrics for {scored_post.url}")
+            logger.info("[%s/%s] Fetched metrics for %s", i + 1, total_count, scored_post.url)
 
     return posts, boosts
 
 
 def fetch_boosted_accounts(mastodon_client: Mastodon, boosted_lists: set[int]) -> set[str]:
-    print(
-        f"[{datetime.now():%H:%M:%S}] Fetching accounts for {len(boosted_lists)} boosted lists...",
-        flush=True,
-    )
+    logger.info("Fetching accounts for %s boosted lists...", len(boosted_lists))
     boosted_accounts: list[str] = []
     for id in boosted_lists:
         accounts = mastodon_client.list_accounts(id, limit="0")
@@ -243,17 +247,14 @@ def fetch_boosted_accounts(mastodon_client: Mastodon, boosted_lists: set[int]) -
 
 
 def get_known_instance_domains() -> set[str]:
-    print(f"[{datetime.now():%H:%M:%S}] Fetching known instance domains...", flush=True)
+    logger.info("Fetching known instance domains...")
     try:
         with requests.get("https://nodes.fediverse.party/nodes.json", timeout=30) as resp:
             domains = resp.json()
             assert type(domains) == list
             known_domains = set("://" + domain + "/" for domain in domains)
-            print(
-                f"[{datetime.now():%H:%M:%S}] Known instance domains: {len(known_domains)}",
-                flush=True,
-            )
+            logger.info("Known instance domains: %s", len(known_domains))
             return known_domains
     except requests.exceptions.RequestException as err:
-        print("Error in getting fediverse nodes.json", err)
+        logger.warning("Error in getting fediverse nodes.json: %s", err)
         return set()

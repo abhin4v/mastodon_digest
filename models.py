@@ -4,7 +4,10 @@ from mastodon import Mastodon, MastodonVersionError
 from scorers import Scorer
 from typing import Any, ClassVar
 from urllib.parse import urlparse
+import logging
 import requests
+
+logger = logging.getLogger(__name__)
 
 
 class ScoredPost:
@@ -51,7 +54,7 @@ class ScoredPost:
             self._data["account"]["followers_count"] = status.account.followers_count
             return True
         except Exception as e:
-            print("An error occurred while enriching post: {0} {1}".format(self.url, e))
+            logger.error("An error occurred while enriching post: %s %s", self.url, e)
             return False
 
     def _create_mastodon_client(self, url_parts: list[str]) -> Mastodon:

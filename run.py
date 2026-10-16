@@ -11,12 +11,23 @@ from thresholds import Threshold
 import argparse
 import itertools
 import json
+import logging
 import os
 import os
 import pprint
 import shutil
 import sys
 import tempfile
+
+logger = logging.getLogger(__name__)
+
+
+def setup_logging(verbose: bool) -> None:
+    logging.basicConfig(
+        level=logging.DEBUG if verbose else logging.INFO,
+        format="%(asctime)s %(levelname)-7s %(message)s",
+        datefmt="%H:%M:%S",
+    )
 
 
 def render_digest(context: dict, output_dir: Path) -> None:
@@ -25,7 +36,9 @@ def render_digest(context: dict, output_dir: Path) -> None:
     output_html = template.render(context)
     output_file_path = output_dir / "index.html"
     output_file_path.write_text(output_html)
-    print(f"Rendered digest: {len(context['posts'])} posts and {len(context['boosts'])} boosts")
+    logger.info(
+        "Rendered digest: %s posts and %s boosts", len(context["posts"]), len(context["boosts"])
+    )
 
 
 def get_digested_posts(config: Config) -> list[str]:
@@ -64,7 +77,7 @@ def save_digested_posts(
         tempPath = f.name
 
     shutil.move(tempPath, config.digest_digested_posts_file)
-    print(f"Saved {len(digested_posts)} digested post URLs")
+    logger.info("Saved %s digested post URLs", len(digested_posts))
 
 
 def run(
@@ -74,11 +87,11 @@ def run(
     mastodon_base_url: str,
     output_dir: str,
 ) -> None:
-    print(f"Running with config:")
-    pprint.pp(config)
+    logger.info("Running with config:")
+    logger.info("%s", pprint.pformat(config))
 
     hours = config.timeline_hours_limit
-    print(f"Building digest from the past {hours} hours...")
+    logger.info("Building digest from the past %s hours...", hours)
 
     mastodon_client = Mastodon(
         access_token=mastodon_token,
@@ -87,18 +100,18 @@ def run(
     )
     non_threshold_posts_frac = config.digest_explore_frac / (1 - config.digest_explore_frac)
 
-    print(f"[{datetime.now():%H:%M:%S}] Fetching boosted list accounts...", flush=True)
+    logger.info("Fetching boosted list accounts...")
     boosted_accounts = fetch_boosted_accounts(mastodon_client, config.digest_boosted_list_ids)
     digested_posts = get_digested_posts(config)
-    print(f"Read {len(digested_posts)} digested post URLs")
+    logger.info("Read %s digested post URLs", len(digested_posts))
 
     # 1. Fetch all the posts and boosts from our home timeline that we haven't interacted with
-    print(f"[{datetime.now():%H:%M:%S}] Fetching timeline posts...", flush=True)
+    logger.info("Fetching timeline posts...")
     posts, boosts = fetch_posts_and_boosts(set(digested_posts), mastodon_client, config)
     known_instance_domains = get_known_instance_domains()
 
     # 2. Score them, and return those that meet our threshold
-    print(f"[{datetime.now():%H:%M:%S}] Scoring posts...", flush=True)
+    logger.info("Scoring posts...")
     threshold = Threshold(config.digest_threshold)
     threshold_posts = threshold.posts_meeting_criteria(
         posts,
@@ -115,11 +128,11 @@ def run(
         scorer,
     )
 
-    print(f"[{datetime.now():%H:%M:%S}] Saving digested posts...", flush=True)
+    logger.info("Saving digested posts...")
     save_digested_posts(digested_posts, threshold_posts, threshold_boosts, config)
 
     # 3. Build the digest
-    print(f"[{datetime.now():%H:%M:%S}] Rendering digest...", flush=True)
+    logger.info("Rendering digest...")
     render_digest(
         context={
             "hours": hours,
@@ -151,8 +164,15 @@ if __name__ == "__main__":
         help="The path to the config file",
         type=str,
     )
+    arg_parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Enable verbose (debug) logging",
+    )
 
     args = arg_parser.parse_args()
+    setup_logging(args.verbose)
     config = read_config(args.config)
 
     output_dir = Path(args.output)
