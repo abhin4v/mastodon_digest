@@ -15,12 +15,12 @@ tag_boost = 1.2
 account_boost = 1.2
 reply_unboost = 1.5
 bot_unboost = 1.2
-halflife_hours = 6
+halflife_hours = 12
 tag_count_threshold = 4
 
 [digest]
 explore_frac = 0.1
-threshold = 40
+threshold = 75
 boosted_tags = [
   "astronomy",
   "astrophotography",
