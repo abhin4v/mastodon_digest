@@ -24,14 +24,13 @@ class InverseFollowerWeight(Weight):
     @classmethod
     def weight(cls, post: Status) -> float:
         # Zero out posts by accounts with zero followers,
-        # or less (count is -1 when the followers count is hidden)
-        if post.account.followers_count <= 0:
-            weight = 0.0
-        else:
-            # inversely weight against how big the account is
-            weight = 1 / sqrt(post.account.followers_count)
-
-        return weight
+        # count is -1 when the followers count is hidden.
+        if post.account.followers_count < 0:
+            return 1.0
+        if post.account.followers_count == 0:
+            return 0.0
+        # inversely weight against how big the account is
+        return 1 / sqrt(post.account.followers_count)
 
 
 class Scorer(ABC):
