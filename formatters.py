@@ -27,7 +27,7 @@ def replace_emojis(content: str, emojis: list[CustomEmoji]) -> str:
         shortcode = html.escape(emoji.shortcode)
         content = content.replace(
             f":{emoji.shortcode}:",
-            f'<img class="emoji" title="{shortcode}" alt="{shortcode}" src="{emoji.url}">',
+            f'<img class="emoji" title="{shortcode}" alt="{shortcode}" src="{emoji.url}"  loading="lazy">',
         )
     return content
 
@@ -37,7 +37,7 @@ def format_media(media: MediaAttachment, media_count: int) -> str:
     description = html.escape(media.description) if media.description != None else ""
     caption = f"<figcaption>{description}</figcaption>" if media.description != None else ""
     formats = {
-        "image": f'<a href="{url}"><figure><img src="{url}" alt="{description}"></img>{caption}</figure></a>',
+        "image": f'<a href="{url}"><figure><img src="{url}" alt="{description}" loading="lazy"></img>{caption}</figure></a>',
         "video": f'<video src="{url}" controls width="100%"></video>',
         "gifv": f'<figure><video src="{url}" autoplay loop muted playsinline width="100%" alt="{description}"></video>{caption}</figure>',
     }
